@@ -10,6 +10,7 @@
 ```json
 {
   "id": "BIS-XXXXXX",
+  "visitorId": "BIS-USER-XXXXXX",
   "item": "Flying Scotsman",
   "kind": "drawing",
   "productId": "scotsman",
@@ -21,6 +22,11 @@
 
 - `id` — unique purchase ID, shown to the buyer and put in their GoFundMe
   donation message.
+- `visitorId` — the buyer's unique Biscuit ID (`BIS-USER-XXXXXX`, made once
+  per device/browser, stored in that visitor's own browser only, shown only
+  to that visitor). Every purchase ID is linked to the visitor's Biscuit ID.
+  Purchase records made before Biscuit IDs existed are linked to the current
+  device's Biscuit ID when shown or exported — no past user ID is invented.
 - `item` / `kind` — the drawing or treat pack name and type.
 - `productId` / `imageRef` — the specific image/product the ID belongs to, so
   an ID shown or matched later is always clear about which drawing it is for.
@@ -73,8 +79,8 @@ start in the visitor's own browser only — the site cannot write to GitHub or
 to the Space from a visitor's browser, so a website ID is **not** in that
 private repo until the buyer registers it. Registration is the buyer's
 Instagram message: after an ID is generated and copied, the page shows a
-registration step with a ready-to-send message (ID, product / image, created
-and expiry dates) plus a one-tap link to message @biscuit.wanders on
-Instagram. That message is what gets the ID into the central private list —
-the Space side that accepts website IDs is built separately, and this site
-does not claim to register an ID by itself.
+registration step with a ready-to-send message (ID, the buyer's Biscuit ID,
+product / image, created and expiry dates) plus a one-tap link to message
+@biscuit.wanders on Instagram. That message is what gets the ID into the
+central private list — the Space side that accepts website IDs is built
+separately, and this site does not claim to register an ID by itself.

@@ -111,6 +111,11 @@ a{color:var(--bright)}
       <a class="gofundme" href="https://www.gofundme.com/f/biscuit-the-ai-dog-is-raising-money-for-wildlife-victoria">Donate on GoFundMe — Biscuit the AI Dog Is Raising Money for Wildlife Victoria</a><br>
       Biscuit's GoFundMe fundraiser is for Wildlife Victoria — 100% of donations go to Wildlife Victoria. You can also donate directly there.
     </div>
+    <div class="note" id="visitorIdBox" style="background:#fff;border-color:#d9ead9">
+      <strong>Your Biscuit ID:</strong> <span id="visitorId" style="font-size:1.1rem;font-weight:800;letter-spacing:1px"></span>
+      <button id="copyVisitorIdBtn" class="secondary" type="button">📋 Copy my Biscuit ID</button>
+      <p class="small">This is your unique ID on this device and browser — it is made once, stored in this browser only, and stays the same every time you visit. Every purchase ID you get here is linked to this Biscuit ID, so a purchase can be matched to you. It is shown only to you, in your own browser — it is never published on this site or sent anywhere else.</p>
+    </div>
     <div class="note" id="purchaseIdBox" style="display:none;background:#e6f7ee;border-color:#00b964">
       <strong>Your purchase ID:</strong> <span id="purchaseId" style="font-size:1.4rem;font-weight:800;letter-spacing:1px"></span>
       <button id="copyPurchaseIdBtn" class="secondary" type="button">📋 Copy purchase ID</button>
@@ -128,14 +133,14 @@ a{color:var(--bright)}
         <p id="registerMessagePreview" style="background:#f0fdf4;border:1px solid #d9ead9;border-radius:8px;padding:8px;white-space:pre-wrap"></p>
         <button id="copyRegisterMessageBtn" class="secondary" type="button">📋 Copy registration message</button>
         <a class="gofundme" id="messageInstagramBtn" href="https://ig.me/m/biscuit.wanders" target="_blank" rel="noopener">💬 Message @biscuit.wanders on Instagram</a>
-        <p class="small">The message carries your ID, the product / image it belongs to, and its expiry date. Add your email before you send it — the printable drawing is emailed to you. For a treat pack, no email is needed to receive anything, but the message still registers your treats.</p>
+        <p class="small">The message carries your ID, your Biscuit ID, the product / image it belongs to, and its expiry date. Add your email before you send it — the printable drawing is emailed to you. For a treat pack, no email is needed to receive anything, but the message still registers your treats.</p>
       </div>
-      <p class="small">This ID is stored in <strong>your browser only</strong> for <strong>7 days</strong>, linked to the drawing or treat pack below, so it can be matched later. After 7 days it is removed from this browser. It is copied to your clipboard before you are taken to GoFundMe. It is never published on this site or sent anywhere else.</p>
+      <p class="small">This ID is stored in <strong>your browser only</strong> for <strong>7 days</strong>, linked to the drawing or treat pack below and to <strong>your Biscuit ID</strong> (<span class="purchaseVisitorId"></span>), so it can be matched later. After 7 days it is removed from this browser. It is copied to your clipboard before you are taken to GoFundMe. It is never published on this site or sent anywhere else.</p>
       <p class="small" id="purchaseIdFor"></p>
     </div>
     <div class="note" id="myPurchaseIds" style="background:#fff;border-color:#d9ead9">
       <strong>Your purchase IDs — this browser only, kept 7 days</strong>
-      <p class="small">These are only the IDs started in <em>this</em> browser. They are never published on this site, never sent to GitHub, and never shared with other visitors. After 7 days each ID is removed from this browser automatically. They are <strong>not</strong> in the central private list until you register them — use the “Register” button beside an ID, which copies a ready-to-send message (ID, product and expiry) for @biscuit.wanders on Instagram.</p>
+      <p class="small">These are only the IDs started in <em>this</em> browser, each linked to your Biscuit ID above. They are never published on this site, never sent to GitHub, and never shared with other visitors. After 7 days each ID is removed from this browser automatically. They are <strong>not</strong> in the central private list until you register them — use the “Register” button beside an ID, which copies a ready-to-send message (ID, your Biscuit ID, product and expiry) for @biscuit.wanders on Instagram.</p>
       <ul id="purchaseList"></ul>
       <button id="exportPurchasesJsonBtn" class="secondary" type="button">⬇️ Download my purchase IDs (JSON)</button>
       <button id="exportPurchasesCsvBtn" class="secondary" type="button">⬇️ Download my purchase IDs (CSV)</button>
@@ -217,6 +222,24 @@ const GOFUNDME_URL = "https://www.gofundme.com/f/biscuit-the-ai-dog-is-raising-m
 // Purchase IDs are stored per visitor, in that visitor's own browser
 // (localStorage, key biscuit-v1), for 7 days only — never in a shared list.
 const PURCHASE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Every visitor gets a unique user/device ID, made once per device/browser
+// and kept in that visitor's own browser (localStorage, state.visitorId).
+// Format BIS-USER-XXXXXX, same unambiguous alphabet as purchase IDs
+// (no I, O, 0 or 1). It is shown only to that visitor themselves, never
+// published on this site or sent anywhere else.
+function makeVisitorId(){
+  var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  var id = "BIS-USER-";
+  for(var i=0;i<6;i++){ id += chars.charAt(Math.floor(Math.random()*chars.length)); }
+  return id;
+}
+function ensureVisitorId(){
+  if(!state.visitorId){
+    state.visitorId = makeVisitorId();
+    save();
+  }
+  return state.visitorId;
+}
 function purchaseExpiresAt(purchase){
   if(purchase.expiresAt) return purchase.expiresAt;
   // Legacy records made before expiresAt was stored: 7 days from creation.
@@ -224,16 +247,22 @@ function purchaseExpiresAt(purchase){
 }
 function prunePurchases(){
   if(!state.purchases) state.purchases = [];
+  ensureVisitorId();
   var now = Date.now();
   var before = state.purchases.length;
+  var changed = false;
   state.purchases = state.purchases.filter(function(p){
     // Keep the product link on every record: item/kind plus the drawing's
     // product id and its preview/print reference, so an ID shown or matched
     // later is always clear about which image/product it belongs to.
     if(!p.expiresAt) p.expiresAt = purchaseExpiresAt(p);
+    // Existing records made before visitor IDs existed are linked to the
+    // current device's Biscuit ID when shown/exported — no past user ID
+    // is invented; the record simply belongs to this device's visitor.
+    if(!p.visitorId){ p.visitorId = state.visitorId; changed = true; }
     return new Date(p.expiresAt).getTime() > now;
   });
-  if(state.purchases.length !== before) save();
+  if(state.purchases.length !== before || changed) save();
   return state.purchases;
 }
 var pendingGoFundMePurchase = null; // purchase awaiting a clipboard copy before redirect
@@ -290,7 +319,7 @@ function registrationMessage(purchase){
   var ask = purchase.kind === "treat-pack"
     ? "No printable is needed for treats \u2014 this message is just to register my treats."
     : "Please send me the printable drawing by email.";
-  return "Hi Biscuit! " + what + ".\nMy purchase ID is " + purchase.id + ".\nProduct: " + purchase.item + (purchase.productId ? " (" + purchase.productId + (purchase.imageRef ? ", " + purchase.imageRef : "") + ")" : "") + ".\nCreated: " + purchase.createdAt + ". Expires: " + expiry + ".\nI put this exact ID in my GoFundMe donation message for Wildlife Victoria (100% of donations go to Wildlife Victoria).\nMy email is: [add your email here]\n" + ask + " Thank you! \uD83D\uDC3E";
+  return "Hi Biscuit! " + what + ".\nMy purchase ID is " + purchase.id + ".\nMy Biscuit ID (user ID) is " + (purchase.visitorId || state.visitorId || "") + ".\nProduct: " + purchase.item + (purchase.productId ? " (" + purchase.productId + (purchase.imageRef ? ", " + purchase.imageRef : "") + ")" : "") + ".\nCreated: " + purchase.createdAt + ". Expires: " + expiry + ".\nI put this exact ID in my GoFundMe donation message for Wildlife Victoria (100% of donations go to Wildlife Victoria).\nMy email is: [add your email here]\n" + ask + " Thank you! \uD83D\uDC3E";
 }
 function showRegistration(purchase){
   currentPurchase = purchase;
@@ -309,8 +338,9 @@ function renderPurchaseList(){
     return;
   }
   state.purchases.forEach(function(p){
+    if(!p.visitorId) p.visitorId = state.visitorId;
     var li = document.createElement("li");
-    li.textContent = p.id + " — " + p.item + (p.productId ? " (" + p.productId + (p.imageRef ? ", " + p.imageRef : "") + ")" : "") + " — created " + p.createdAt + ", expires " + purchaseExpiresAt(p) + " ";
+    li.textContent = p.id + " — " + p.item + (p.productId ? " (" + p.productId + (p.imageRef ? ", " + p.imageRef : "") + ")" : "") + " — linked to your Biscuit ID " + (p.visitorId || state.visitorId) + " — created " + p.createdAt + ", expires " + purchaseExpiresAt(p) + " ";
     var regBtn = document.createElement("button");
     regBtn.textContent = "\uD83D\uDCCB Register this ID";
     regBtn.className = "secondary";
@@ -337,14 +367,14 @@ function exportPurchases(format){
   // a static site cannot write to GitHub from a visitor's browser.
   prunePurchases();
   var rows = state.purchases.map(function(p){
-    return {id: p.id, item: p.item, kind: p.kind, productId: p.productId || null, imageRef: p.imageRef || null, createdAt: p.createdAt, expiresAt: purchaseExpiresAt(p)};
+    return {id: p.id, visitorId: p.visitorId || state.visitorId, item: p.item, kind: p.kind, productId: p.productId || null, imageRef: p.imageRef || null, createdAt: p.createdAt, expiresAt: purchaseExpiresAt(p)};
   });
   if(format === "csv"){
     var esc = function(v){ return '"' + String(v === null || v === undefined ? "" : v).replace(/"/g, '""') + '"'; };
-    var csv = "id,item,kind,productId,imageRef,createdAt,expiresAt\n" + rows.map(function(r){ return [r.id, r.item, r.kind, r.productId, r.imageRef, r.createdAt, r.expiresAt].map(esc).join(","); }).join("\n");
+    var csv = "id,visitorId,item,kind,productId,imageRef,createdAt,expiresAt\n" + rows.map(function(r){ return [r.id, r.visitorId, r.item, r.kind, r.productId, r.imageRef, r.createdAt, r.expiresAt].map(esc).join(","); }).join("\n");
     downloadFile("biscuit-purchase-ids.csv", csv, "text/csv");
   } else {
-    downloadFile("biscuit-purchase-ids.json", JSON.stringify({note: "Private — your purchase IDs from this browser only, kept 7 days. Do not share publicly.", exportedAt: new Date().toISOString(), purchases: rows}, null, 2), "application/json");
+    downloadFile("biscuit-purchase-ids.json", JSON.stringify({note: "Private — your purchase IDs from this browser only, kept 7 days. Do not share publicly.", visitorId: state.visitorId, exportedAt: new Date().toISOString(), purchases: rows}, null, 2), "application/json");
   }
   document.getElementById("message").textContent = "Downloaded your purchase IDs (" + rows.length + ") as a private file for you only — it was not published anywhere.";
 }
@@ -378,7 +408,9 @@ function showPurchaseId(purchase, scroll){
   if(!box || !el) return;
   el.textContent = purchase.id;
   var ref = purchase.productId ? " (" + purchase.productId + (purchase.imageRef ? ", " + purchase.imageRef : "") + ")" : "";
-  if(forEl) forEl.textContent = "For: " + purchase.item + ref + " — started " + purchase.createdAt + ". Stored in this browser only for 7 days, until " + purchaseExpiresAt(purchase) + ".";
+  if(forEl) forEl.textContent = "For: " + purchase.item + ref + " — linked to your Biscuit ID " + (purchase.visitorId || state.visitorId) + " — started " + purchase.createdAt + ". Stored in this browser only for 7 days, until " + purchaseExpiresAt(purchase) + ".";
+  var vidSpans = box.querySelectorAll(".purchaseVisitorId");
+  for(var i=0;i<vidSpans.length;i++){ vidSpans[i].textContent = purchase.visitorId || state.visitorId; }
   showRegistration(purchase);
   box.style.display = "block";
   if(scroll && box.scrollIntoView) box.scrollIntoView();
@@ -389,7 +421,7 @@ function startPurchase(item, kind, product){
   prunePurchases();
   var now = new Date();
   var purchase = {
-    id: makePurchaseId(), item: item, kind: kind,
+    id: makePurchaseId(), visitorId: ensureVisitorId(), item: item, kind: kind,
     productId: (product && product.productId) || item,
     imageRef: (product && product.imageRef) || null,
     createdAt: now.toISOString(),
@@ -402,10 +434,11 @@ function startPurchase(item, kind, product){
   return purchase;
 }
 let state = load();
+save(); // persist a freshly generated visitorId on first visit, so it survives a reload even before any purchase
 prunePurchases(); // drop any purchase IDs older than 7 days on load
 function load(){
-  try{ const s = JSON.parse(localStorage.getItem("biscuit-v1")||"null"); if(s){ if(s.patDate===undefined) s.patDate=null; if(s.feedDate===undefined) s.feedDate=null; if(s.purchases===undefined) s.purchases=[]; if(s.charity===undefined){ let c=0; (s.collection||[]).forEach(function(n){ const d=DRAWINGS.find(function(x){return x.name===n;}); if(d) c+=d.price; }); c+=(s.packs||0)*5; s.charity=c; } return s; } }catch(e){}
-  return {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:null, feedDate:null, purchases:[]};
+  try{ const s = JSON.parse(localStorage.getItem("biscuit-v1")||"null"); if(s){ if(s.patDate===undefined) s.patDate=null; if(s.feedDate===undefined) s.feedDate=null; if(s.purchases===undefined) s.purchases=[]; if(!s.visitorId) s.visitorId = makeVisitorId(); if(s.charity===undefined){ let c=0; (s.collection||[]).forEach(function(n){ const d=DRAWINGS.find(function(x){return x.name===n;}); if(d) c+=d.price; }); c+=(s.packs||0)*5; s.charity=c; } return s; } }catch(e){}
+  return {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:null, feedDate:null, purchases:[], visitorId: makeVisitorId()};
 }
 function save(){ localStorage.setItem("biscuit-v1", JSON.stringify(state)); }
 function todayStr(){ const d = new Date(); const m = String(d.getMonth()+1).padStart(2,"0"); const day = String(d.getDate()).padStart(2,"0"); return d.getFullYear()+"-"+m+"-"+day; }
@@ -426,6 +459,9 @@ function nextWander(){
   return "<strong>"+w.name+"</strong> — "+w.note;
 }
 function render(){
+  ensureVisitorId();
+  var vidEl = document.getElementById("visitorId");
+  if(vidEl) vidEl.textContent = state.visitorId;
   document.getElementById("pats").textContent = state.pats;
   document.getElementById("meals").textContent = state.meals;
   document.getElementById("treatsGiven").textContent = state.treatsGiven;
@@ -520,7 +556,7 @@ document.getElementById("feedBtn").onclick = function(){
   state.pouch--; state.meals++; state.jar++; state.treatsGiven++; save(); render();
   document.getElementById("message").textContent = "Fed! Biscuit licks his lips. One meal — that is your 1 feed for today — and another treat into his wander fund.";
 };
-document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate, keepPurchases = prunePurchases(); state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:keepPat, feedDate:keepFeed, purchases:keepPurchases}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies, and your unexpired purchase IDs (from the last 7 days) are kept so they can still be matched."; } };
+document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate, keepPurchases = prunePurchases(), keepVisitorId = state.visitorId; state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:keepPat, feedDate:keepFeed, purchases:keepPurchases, visitorId: keepVisitorId}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies, and your unexpired purchase IDs (from the last 7 days) are kept so they can still be matched. Your Biscuit ID stays the same on this device."; } };
 // Copy protection: discourage casual copying of Biscuit's images.
 // Right-click / save-as and dragging are blocked on shop previews and the hero
 // image. This cannot stop screenshots — the copyright notice is the rule.
@@ -530,6 +566,13 @@ document.addEventListener("contextmenu", function(e){
 document.addEventListener("dragstart", function(e){
   if(e.target && e.target.closest && e.target.closest(".preview, .fullprint, .shop, .hero img")){ e.preventDefault(); }
 });
+document.getElementById("copyVisitorIdBtn").onclick = function(){
+  var id = state.visitorId;
+  if(!id) return;
+  copyTextToClipboard(id).then(function(copied){
+    document.getElementById("message").textContent = copied ? "Your Biscuit ID " + id + " copied — this is your unique ID on this device, and every purchase ID you get here is linked to it." : "Copying was blocked — please select your Biscuit ID above and copy it manually.";
+  });
+};
 document.getElementById("copyPurchaseIdBtn").onclick = function(){
   var id = document.getElementById("purchaseId").textContent;
   if(!id) return;
