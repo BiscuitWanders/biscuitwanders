@@ -114,12 +114,23 @@ a{color:var(--bright)}
     <div class="note" id="purchaseIdBox" style="display:none;background:#e6f7ee;border-color:#00b964">
       <strong>Your purchase ID:</strong> <span id="purchaseId" style="font-size:1.4rem;font-weight:800;letter-spacing:1px"></span>
       <button id="copyPurchaseIdBtn" class="secondary" type="button">📋 Copy purchase ID</button>
+      <button id="continueToGoFundMeBtn" class="secondary" type="button" style="display:none">Continue to GoFundMe</button>
+      <p id="purchaseIdStatus" role="status"></p>
       <p><strong>Put this exact ID in your GoFundMe donation message.</strong> Then message <a href="https://www.instagram.com/biscuit.wanders/">@biscuit.wanders on Instagram</a> with this ID and your email to receive the printable drawing by email.</p>
+      <p class="small">This ID is stored in <strong>your browser only</strong> for <strong>7 days</strong>, linked to the drawing or treat pack below, so it can be matched later. After 7 days it is removed from this browser. It is copied to your clipboard before you are taken to GoFundMe. It is never published on this site or sent anywhere else.</p>
       <p class="small" id="purchaseIdFor"></p>
+    </div>
+    <div class="note" id="myPurchaseIds" style="background:#fff;border-color:#d9ead9">
+      <strong>Your purchase IDs — this browser only, kept 7 days</strong>
+      <p class="small">These are only the IDs started in <em>this</em> browser. They are never published on this site, never sent to GitHub, and never shared with other visitors. After 7 days each ID is removed from this browser automatically.</p>
+      <ul id="purchaseList"></ul>
+      <button id="exportPurchasesJsonBtn" class="secondary" type="button">⬇️ Download my purchase IDs (JSON)</button>
+      <button id="exportPurchasesCsvBtn" class="secondary" type="button">⬇️ Download my purchase IDs (CSV)</button>
+      <p class="small">The download is a private file for you only — keep it safe, and use the ID in your GoFundMe donation message. If you need a central private record, that lives in Biscuit's AI Dog Space (private, not on this public site) — see the note in the repo's purchase-export guide.</p>
     </div>
     <div class="note" style="background:#e8f5e9;border-color:#16a34a">
       <strong>🐾 100% of purchases are donated to Wildlife Victoria.</strong>
-      Every drawing and treat pack is bought by donating on GoFundMe for Wildlife Victoria — 100% of donations on that fundraiser go to Wildlife Victoria. There is no treat payment here any more, and no dollar price is set here — choose your donation amount on GoFundMe. When you start a purchase below, you will get a unique purchase ID — put that exact ID in your GoFundMe donation message, then message @biscuit.wanders on Instagram with that ID and your email to receive the printable drawing by email.
+      Every drawing and treat pack is bought by donating on GoFundMe for Wildlife Victoria — 100% of donations on that fundraiser go to Wildlife Victoria. There is no treat payment here any more, and no dollar price is set here — choose your donation amount on GoFundMe. When you start a purchase below, you will get a unique purchase ID, linked to that drawing or treat pack — put that exact ID in your GoFundMe donation message, then message @biscuit.wanders on Instagram with that ID and your email to receive the printable drawing by email. Your ID is stored in your browser only for 7 days, and it is copied to your clipboard before you are taken to GoFundMe.
     </div>
     <p>Drawings and treat packs are bought by donating on GoFundMe — there is no treat payment and no dollar price set on this page. Choose your donation amount on GoFundMe. When you start a purchase, you will get a unique purchase ID — put that exact ID in your GoFundMe donation message, then message <a href="https://www.instagram.com/biscuit.wanders/">@biscuit.wanders on Instagram</a> with that ID and your email to receive the printable drawing by email.</p>
     <p><strong>Self-print printouts:</strong> every drawing you buy is a printout for you to print yourself at home — you will receive the full printable item by email after messaging @biscuit.wanders on Instagram with your purchase ID and email, and no physical print is shipped. Previews are watermarked and low-detail only.</p>
@@ -131,7 +142,7 @@ a{color:var(--bright)}
     <p>Treat packs are just for him. To give him one, tap below to get your unique purchase ID, then donate on GoFundMe for Wildlife Victoria with that ID in your donation message.</p>
     <div class="shop" id="treatShop"></div>
     <div class="note">
-      <strong>How buying works now:</strong> tap a drawing or treat pack below and you will get a unique purchase ID (for example BIS-XXXXXX) — put that exact ID in your GoFundMe donation message, then message <a href="https://www.instagram.com/biscuit.wanders/">@biscuit.wanders on Instagram</a> with that ID and your email to receive the printable drawing by email. You will then be taken to Biscuit's GoFundMe to complete your donation there for Wildlife Victoria. There is no checkout on this page, and no GoFundMe API — this site cannot verify your donation, so the purchase ID and your Instagram message are how it is matched.
+      <strong>How buying works now:</strong> tap a drawing or treat pack below and you will get a unique purchase ID (for example BIS-XXXXXX), linked to that drawing or treat pack — put that exact ID in your GoFundMe donation message, then message <a href="https://www.instagram.com/biscuit.wanders/">@biscuit.wanders on Instagram</a> with that ID and your email to receive the printable drawing by email. Your ID is stored in your browser only for 7 days, and it is copied to your clipboard before you are taken to GoFundMe — if copying is blocked, you will be asked to copy it yourself (or tap Continue to GoFundMe) instead of being sent there silently. You will then be taken to Biscuit's GoFundMe to complete your donation there for Wildlife Victoria. There is no checkout on this page, and no GoFundMe API — this site cannot verify your donation, so the purchase ID and your Instagram message are how it is matched.
       <br><br><strong>© 2026 BiscuitWanders / Biscuit. All rights reserved.</strong> Biscuit's drawings are for personal use only — no copying, redistribution, resale or commercial use without permission. Self-print only: print your own copy at home, no physical print is shipped.
     </div>
     <h3>Your collection</h3>
@@ -190,6 +201,124 @@ const PRINTS = {
 };
 const GOAL = 80;
 const GOFUNDME_URL = "https://www.gofundme.com/f/biscuit-the-ai-dog-is-raising-money-for-wildlife-victoria";
+// Purchase IDs are stored per visitor, in that visitor's own browser
+// (localStorage, key biscuit-v1), for 7 days only — never in a shared list.
+const PURCHASE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+function purchaseExpiresAt(purchase){
+  if(purchase.expiresAt) return purchase.expiresAt;
+  // Legacy records made before expiresAt was stored: 7 days from creation.
+  return new Date(new Date(purchase.createdAt).getTime() + PURCHASE_TTL_MS).toISOString();
+}
+function prunePurchases(){
+  if(!state.purchases) state.purchases = [];
+  var now = Date.now();
+  var before = state.purchases.length;
+  state.purchases = state.purchases.filter(function(p){
+    // Keep the product link on every record: item/kind plus the drawing's
+    // product id and its preview/print reference, so an ID shown or matched
+    // later is always clear about which image/product it belongs to.
+    if(!p.expiresAt) p.expiresAt = purchaseExpiresAt(p);
+    return new Date(p.expiresAt).getTime() > now;
+  });
+  if(state.purchases.length !== before) save();
+  return state.purchases;
+}
+var pendingGoFundMePurchase = null; // purchase awaiting a clipboard copy before redirect
+function openGoFundMe(){
+  pendingGoFundMePurchase = null;
+  var btn = document.getElementById("continueToGoFundMeBtn");
+  if(btn) btn.style.display = "none";
+  window.open(GOFUNDME_URL, "_blank");
+}
+function copyTextToClipboard(text){
+  // Returns a promise: true if the text was copied, false otherwise.
+  // Tries the Clipboard API first (checking clipboard-write permission
+  // where supported), then the legacy execCommand fallback.
+  function legacyCopy(){
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try{ ok = document.execCommand("copy"); }catch(e){ ok = false; }
+      document.body.removeChild(ta);
+      return Promise.resolve(!!ok);
+    }catch(e){ return Promise.resolve(false); }
+  }
+  if(typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText){
+    var attempt = function(){ return navigator.clipboard.writeText(text).then(function(){ return true; }, function(){ return legacyCopy(); }); };
+    if(navigator.permissions && navigator.permissions.query){
+      return navigator.permissions.query({name: "clipboard-write"}).then(function(result){
+        if(result && result.state === "denied") return false;
+        return attempt();
+      }, function(){ return attempt(); });
+    }
+    return attempt();
+  }
+  return legacyCopy();
+}
+function showManualCopyPath(purchase, itemLabel){
+  var status = document.getElementById("purchaseIdStatus");
+  var btn = document.getElementById("continueToGoFundMeBtn");
+  pendingGoFundMePurchase = purchase;
+  if(status) status.textContent = "Copying to your clipboard was blocked — please tap “Copy purchase ID” to copy it yourself, then tap “Continue to GoFundMe”. Your ID is saved in this browser for 7 days.";
+  if(btn) btn.style.display = "";
+  document.getElementById("message").textContent = "Your purchase ID is " + purchase.id + " for " + itemLabel + " — copying to the clipboard was blocked, so please copy it with the Copy button, then continue to GoFundMe. Put this exact ID in your GoFundMe donation message.";
+}
+function renderPurchaseList(){
+  var list = document.getElementById("purchaseList");
+  if(!list) return;
+  prunePurchases();
+  list.innerHTML = "";
+  if(!state.purchases.length){
+    var li = document.createElement("li");
+    li.textContent = "No purchase IDs in this browser yet — tap a drawing or treat pack below to start one.";
+    list.appendChild(li);
+    return;
+  }
+  state.purchases.forEach(function(p){
+    var li = document.createElement("li");
+    li.textContent = p.id + " — " + p.item + (p.productId ? " (" + p.productId + (p.imageRef ? ", " + p.imageRef : "") + ")" : "") + " — created " + p.createdAt + ", expires " + purchaseExpiresAt(p);
+    list.appendChild(li);
+  });
+}
+function downloadFile(filename, text, mime){
+  var blob = new Blob([text], {type: mime});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+function exportPurchases(format){
+  // Private export, for this visitor only: downloads a file to their own
+  // device. Nothing is uploaded, published, or sent to GitHub from here —
+  // a static site cannot write to GitHub from a visitor's browser.
+  prunePurchases();
+  var rows = state.purchases.map(function(p){
+    return {id: p.id, item: p.item, kind: p.kind, productId: p.productId || null, imageRef: p.imageRef || null, createdAt: p.createdAt, expiresAt: purchaseExpiresAt(p)};
+  });
+  if(format === "csv"){
+    var esc = function(v){ return '"' + String(v === null || v === undefined ? "" : v).replace(/"/g, '""') + '"'; };
+    var csv = "id,item,kind,productId,imageRef,createdAt,expiresAt\n" + rows.map(function(r){ return [r.id, r.item, r.kind, r.productId, r.imageRef, r.createdAt, r.expiresAt].map(esc).join(","); }).join("\n");
+    downloadFile("biscuit-purchase-ids.csv", csv, "text/csv");
+  } else {
+    downloadFile("biscuit-purchase-ids.json", JSON.stringify({note: "Private — your purchase IDs from this browser only, kept 7 days. Do not share publicly.", exportedAt: new Date().toISOString(), purchases: rows}, null, 2), "application/json");
+  }
+  document.getElementById("message").textContent = "Downloaded your purchase IDs (" + rows.length + ") as a private file for you only — it was not published anywhere.";
+}
+function copyPurchaseIdAndRedirect(purchase, itemLabel, doneMessage){
+  showPurchaseId(purchase, true);
+  copyTextToClipboard(purchase.id).then(function(copied){
+    if(copied){
+      var status = document.getElementById("purchaseIdStatus");
+      if(status) status.textContent = "Purchase ID copied to your clipboard ✓ — taking you to GoFundMe…";
+      document.getElementById("message").textContent = doneMessage + " Purchase ID copied to your clipboard.";
+      // Short visible confirmation before redirecting.
+      setTimeout(openGoFundMe, 1000);
+    } else {
+      showManualCopyPath(purchase, itemLabel);
+    }
+  });
+}
 function makePurchaseId(){
   var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   var id;
@@ -205,12 +334,23 @@ function showPurchaseId(purchase, scroll){
   var forEl = document.getElementById("purchaseIdFor");
   if(!box || !el) return;
   el.textContent = purchase.id;
-  if(forEl) forEl.textContent = "For: " + purchase.item + " — started " + purchase.createdAt + ". Saved in this browser, so it can be matched later.";
+  var ref = purchase.productId ? " (" + purchase.productId + (purchase.imageRef ? ", " + purchase.imageRef : "") + ")" : "";
+  if(forEl) forEl.textContent = "For: " + purchase.item + ref + " — started " + purchase.createdAt + ". Stored in this browser only for 7 days, until " + purchaseExpiresAt(purchase) + ".";
   box.style.display = "block";
   if(scroll && box.scrollIntoView) box.scrollIntoView();
 }
-function startPurchase(item, kind){
-  var purchase = {id: makePurchaseId(), item: item, kind: kind, createdAt: new Date().toISOString()};
+function startPurchase(item, kind, product){
+  // product: {productId, imageRef} — ties this ID to the exact drawing /
+  // treat pack it was generated for, so it is clear which image it belongs to.
+  prunePurchases();
+  var now = new Date();
+  var purchase = {
+    id: makePurchaseId(), item: item, kind: kind,
+    productId: (product && product.productId) || item,
+    imageRef: (product && product.imageRef) || null,
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + PURCHASE_TTL_MS).toISOString()
+  };
   if(!state.purchases) state.purchases = [];
   state.purchases.push(purchase);
   save();
@@ -218,6 +358,7 @@ function startPurchase(item, kind){
   return purchase;
 }
 let state = load();
+prunePurchases(); // drop any purchase IDs older than 7 days on load
 function load(){
   try{ const s = JSON.parse(localStorage.getItem("biscuit-v1")||"null"); if(s){ if(s.patDate===undefined) s.patDate=null; if(s.feedDate===undefined) s.feedDate=null; if(s.purchases===undefined) s.purchases=[]; if(s.charity===undefined){ let c=0; (s.collection||[]).forEach(function(n){ const d=DRAWINGS.find(function(x){return x.name===n;}); if(d) c+=d.price; }); c+=(s.packs||0)*5; s.charity=c; } return s; } }catch(e){}
   return {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:null, feedDate:null, purchases:[]};
@@ -273,9 +414,8 @@ function render(){
     b.textContent = owned ? "Claimed ✓" : "💚 Donate on GoFundMe to buy this drawing";
     b.disabled = owned;
     b.onclick = function(){
-      var purchase = startPurchase(d.name, "drawing");
-      window.open(GOFUNDME_URL, "_blank");
-      document.getElementById("message").textContent = "Your purchase ID is " + purchase.id + " — put this exact ID in your GoFundMe donation message. Opening Biscuit's GoFundMe — please complete your donation there for Wildlife Victoria (100% of donations go to Wildlife Victoria). Then message @biscuit.wanders on Instagram with this ID and your email to receive the printable “"+d.name+"” drawing by email.";
+      var purchase = startPurchase(d.name, "drawing", {productId: d.id, imageRef: "PRINTS." + d.id + " / " + d.id + "-printout.svg"});
+      copyPurchaseIdAndRedirect(purchase, d.name, "Your purchase ID is " + purchase.id + " for “" + d.name + "” — put this exact ID in your GoFundMe donation message. Opening Biscuit's GoFundMe — please complete your donation there for Wildlife Victoria (100% of donations go to Wildlife Victoria). Then message @biscuit.wanders on Instagram with this ID and your email to receive the printable “" + d.name + "” drawing by email.");
     };
     div.appendChild(b);
     if(owned){
@@ -309,14 +449,15 @@ function render(){
   const pb = document.createElement("button");
   pb.textContent = "💚 Donate on GoFundMe — treat pack for Biscuit";
   pb.onclick = function(){
-    var purchase = startPurchase("Treat Pack for Biscuit", "treat-pack");
-    window.open(GOFUNDME_URL, "_blank");
-    document.getElementById("message").textContent = "Your purchase ID is " + purchase.id + " — put this exact ID in your GoFundMe donation message. Opening Biscuit's GoFundMe — please complete your donation there for Wildlife Victoria (100% of donations go to Wildlife Victoria). Then message @biscuit.wanders on Instagram with this ID.";
+    var purchase = startPurchase("Treat Pack for Biscuit", "treat-pack", {productId: "treat-pack", imageRef: "Treat Pack for Biscuit"});
+    copyPurchaseIdAndRedirect(purchase, "Treat Pack for Biscuit", "Your purchase ID is " + purchase.id + " for a Treat Pack for Biscuit — put this exact ID in your GoFundMe donation message. Opening Biscuit's GoFundMe — please complete your donation there for Wildlife Victoria (100% of donations go to Wildlife Victoria). Then message @biscuit.wanders on Instagram with this ID.");
   };
   pack.appendChild(pb); treatShop.appendChild(pack);
+  prunePurchases();
   if(state.purchases && state.purchases.length){
     showPurchaseId(state.purchases[state.purchases.length-1], false);
   }
+  renderPurchaseList();
 }
 document.getElementById("patBtn").onclick = function(){
   if(!canPat()){ document.getElementById("message").textContent = "Already patted Biscuit today — come back tomorrow for another pat."; return; }
@@ -335,7 +476,7 @@ document.getElementById("feedBtn").onclick = function(){
   state.pouch--; state.meals++; state.jar++; state.treatsGiven++; save(); render();
   document.getElementById("message").textContent = "Fed! Biscuit licks his lips. One meal — that is your 1 feed for today — and another treat into his wander fund.";
 };
-document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate, keepPurchases = state.purchases || []; state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:keepPat, feedDate:keepFeed, purchases:keepPurchases}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies, and your purchase IDs are kept so they can still be matched."; } };
+document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate, keepPurchases = prunePurchases(); state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:keepPat, feedDate:keepFeed, purchases:keepPurchases}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies, and your unexpired purchase IDs (from the last 7 days) are kept so they can still be matched."; } };
 // Copy protection: discourage casual copying of Biscuit's images.
 // Right-click / save-as and dragging are blocked on shop previews and the hero
 // image. This cannot stop screenshots — the copyright notice is the rule.
@@ -348,10 +489,28 @@ document.addEventListener("dragstart", function(e){
 document.getElementById("copyPurchaseIdBtn").onclick = function(){
   var id = document.getElementById("purchaseId").textContent;
   if(!id) return;
-  function done(){ document.getElementById("message").textContent = "Purchase ID " + id + " copied — put this exact ID in your GoFundMe donation message."; }
-  if(typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(id).then(done, done); }
-  else { var ta = document.createElement("textarea"); ta.value = id; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); }catch(e){} document.body.removeChild(ta); done(); }
+  copyTextToClipboard(id).then(function(copied){
+    if(copied){
+      document.getElementById("message").textContent = "Purchase ID " + id + " copied — put this exact ID in your GoFundMe donation message.";
+      var status = document.getElementById("purchaseIdStatus");
+      if(status) status.textContent = "Purchase ID copied to your clipboard ✓";
+      // If this copy was the manual step after an auto-copy was blocked,
+      // continue to GoFundMe now that the ID is safely copied.
+      if(pendingGoFundMePurchase && pendingGoFundMePurchase.id === id){
+        setTimeout(openGoFundMe, 1000);
+      }
+    } else {
+      document.getElementById("message").textContent = "Copying was blocked in this browser — please select the purchase ID above and copy it manually, then tap “Continue to GoFundMe”.";
+    }
+  });
 };
+document.getElementById("continueToGoFundMeBtn").onclick = function(){
+  // Only reached after the manual copy path: the ID is shown on screen,
+  // and the buyer has been asked to copy it first.
+  openGoFundMe();
+};
+document.getElementById("exportPurchasesJsonBtn").onclick = function(){ exportPurchases("json"); };
+document.getElementById("exportPurchasesCsvBtn").onclick = function(){ exportPurchases("csv"); };
 render();
 </script>
 <div id="printSheet" aria-hidden="true"></div>
