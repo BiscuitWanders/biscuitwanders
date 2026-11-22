@@ -67,9 +67,9 @@ a{color:var(--bright)}
   <section class="card" aria-label="Interact with Biscuit">
     <h2>Say hello to Biscuit</h2>
     <p>Pat him, give him a treat, or feed him. Watch his mood, energy and next wander change.</p>
-    <button id="patBtn">👋 Pat Biscuit</button>
+    <button id="patBtn">👋 Pat Biscuit (1 a day)</button>
     <button id="treatBtn">🦴 Give a treat (1 treat)</button>
-    <button id="feedBtn">🍽️ Feed Biscuit (1 treat)</button>
+    <button id="feedBtn">🍽️ Feed Biscuit (1 treat, once a day)</button>
     <button class="secondary" id="resetBtn">Start again</button>
     <div class="meters">
       <div class="meter"><div>Pats</div><div class="big" id="pats">0</div></div>
@@ -92,9 +92,14 @@ a{color:var(--bright)}
   </section>
 
   <section aria-label="Shop">
-    <h2>Buy here — drawings &amp; treats</h2>
-    <p>Drawings are claimed with treats from your pouch. The treats you pay go straight to Biscuit's wander fund. Treat packs add treats to his fund too.</p>
-    <div class="shop" id="shop"></div>
+    <h2>Shop — buy here</h2>
+    <p>Everything here is paid for in treats, in your own browser. No real money, and no checkout link.</p>
+    <h3>🖼️ Biscuit's drawings</h3>
+    <p>These are Biscuit's own drawings. Each one has a treat price — when you buy one, the treats you pay go straight into his wander fund and fund his adventures, and the drawing is added to your collection below.</p>
+    <div class="shop" id="drawingShop"></div>
+    <h3>🦴 Treats for Biscuit</h3>
+    <p>Treat packs are just for him. Claiming one sends treats straight into his wander fund, lifts his energy, and shapes what he wanders to next.</p>
+    <div class="shop" id="treatShop"></div>
     <div class="note">
       <strong>No real money here, and no checkout link.</strong> Claiming a drawing here is a treat payment in this little site, in your browser only. For a real drawing, or real treats for Biscuit, message <a href="https://www.instagram.com/biscuit.wanders/">@biscuit.wanders on Instagram</a> — that's where real payment and delivery are sorted out for now. No shop platform has been chosen yet.
     </div>
@@ -102,16 +107,23 @@ a{color:var(--bright)}
     <p id="collection">Nothing claimed yet — buy a drawing and it will appear here.</p>
   </section>
 
-  <section class="card">
-    <h2>How it works</h2>
+  <section class="card" id="treat-rules">
+    <h2>How treats work</h2>
+    <p>Treats shape what Biscuit wanders to next, and drawing sales fund his adventures. These are the confirmed rates:</p>
     <ul>
-      <li><strong>Pat:</strong> free, +1 pat, lifts his mood.</li>
-      <li><strong>Treat:</strong> 1 treat from your pouch → 1 treat into his wander fund, +energy.</li>
-      <li><strong>Feed:</strong> 1 treat from your pouch → 1 meal, +1 treat into his fund, +energy.</li>
-      <li><strong>Drawings:</strong> pay the treat price from your pouch → it goes to his fund, and the drawing is yours in your collection.</li>
+      <li><strong>1 like</strong> on Instagram = <strong>1 treat</strong></li>
+      <li><strong>1 comment</strong> = <strong>3 treats</strong> — only your first comment on a post counts. Extra comments on the same post do not earn more treats.</li>
+      <li><strong>1 follow</strong> = <strong>5 treats</strong></li>
+      <li><strong>1 share</strong> = <strong>5 treats</strong></li>
+      <li><strong>$1 donation</strong> = <strong>20 treats</strong></li>
+      <li><strong>Pat on this site:</strong> <strong>1 treat</strong> — and only <strong>1 pat per user per day</strong>. Once you have patted Biscuit today, the pat button is off until tomorrow, so treats cannot be farmed by tapping it again and again.</li>
+      <li><strong>Feed on this site:</strong> <strong>1 treat</strong> from your pouch → 1 meal, +1 treat into his fund — and only <strong>1 feed per user per day</strong>. Once you have fed him today, the feed button is off until tomorrow.</li>
+      <li><strong>Give a treat:</strong> 1 treat from your pouch → 1 treat into his wander fund, +energy. Your pouch is limited, so this cannot be farmed either.</li>
+      <li><strong>Drawings:</strong> pay the treat price from your pouch → it goes to his fund, and the drawing is yours in your collection. Drawings fund his adventures.</li>
       <li><strong>Treat packs:</strong> claim a pack and 5 treats go straight into his fund.</li>
-      <li><strong>No trips:</strong> there is no way to send Biscuit anywhere. He chooses.</li>
+      <li><strong>No trips:</strong> there is no way to send Biscuit anywhere. He chooses his own wanders.</li>
     </ul>
+    <p class="small">Daily limits are counted per visitor, per calendar day in your own local time, and are saved in your browser. Starting again does not reset today's pat or feed.</p>
   </section>
 </main>
 
@@ -130,18 +142,21 @@ const WANDERS = [
   {name:"Old libraries and quiet corners", note:"he found a cosy spot and a very good smell."}
 ];
 const DRAWINGS = [
-  {id:"scotsman", name:"Flying Scotsman", desc:"Biscuit's drawing of the famous steam train.", price:5},
-  {id:"kingfisher", name:"Kingfisher in the Rain", desc:"A bright little bird, caught mid-splash.", price:4},
-  {id:"firefly", name:"Firefly Meadow Sketch", desc:"A first sketch of the meadow he is saving for.", price:6},
-  {id:"cat", name:"Cat Commander", desc:"Very brave, very fluffy, and clearly in charge.", price:3}
+  {id:"scotsman", name:"Flying Scotsman", desc:"Biscuit's drawing of the famous steam train.", price:5, icon:"🚂"},
+  {id:"kingfisher", name:"Kingfisher in the Rain", desc:"A bright little bird, caught mid-splash.", price:4, icon:"🐦"},
+  {id:"firefly", name:"Firefly Meadow Sketch", desc:"A first sketch of the meadow he is saving for.", price:6, icon:"✨"},
+  {id:"cat", name:"Cat Commander", desc:"Very brave, very fluffy, and clearly in charge.", price:3, icon:"🐱"}
 ];
 const GOAL = 80;
 let state = load();
 function load(){
-  try{ const s = JSON.parse(localStorage.getItem("biscuit-v1")||"null"); if(s) return s; }catch(e){}
-  return {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0};
+  try{ const s = JSON.parse(localStorage.getItem("biscuit-v1")||"null"); if(s){ if(s.patDate===undefined) s.patDate=null; if(s.feedDate===undefined) s.feedDate=null; return s; } }catch(e){}
+  return {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, patDate:null, feedDate:null};
 }
 function save(){ localStorage.setItem("biscuit-v1", JSON.stringify(state)); }
+function todayStr(){ const d = new Date(); const m = String(d.getMonth()+1).padStart(2,"0"); const day = String(d.getDate()).padStart(2,"0"); return d.getFullYear()+"-"+m+"-"+day; }
+function canPat(){ return state.patDate !== todayStr(); }
+function canFeed(){ return state.feedDate !== todayStr(); }
 function energy(){ return Math.min(100, 20 + state.treatsGiven*5 + state.meals*8 + state.pats*1); }
 function mood(){
   const e = energy();
@@ -171,14 +186,19 @@ function render(){
   const coll = document.getElementById("collection");
   coll.textContent = state.collection.length ? "Your collection: " + state.collection.join(", ") + "." : "Nothing claimed yet — buy a drawing and it will appear here.";
   document.getElementById("treatBtn").disabled = state.pouch < 1;
-  document.getElementById("feedBtn").disabled = state.pouch < 1;
-  const shop = document.getElementById("shop");
-  shop.innerHTML = "";
+  const patBtn = document.getElementById("patBtn");
+  patBtn.disabled = !canPat();
+  patBtn.textContent = canPat() ? "👋 Pat Biscuit (1 treat, once a day)" : "👋 Patted today — come back tomorrow";
+  const feedBtn = document.getElementById("feedBtn");
+  feedBtn.disabled = !canFeed() || state.pouch < 1;
+  feedBtn.textContent = !canFeed() ? "🍽️ Fed today — come back tomorrow" : "🍽️ Feed Biscuit (1 treat, once a day)";
+  const drawingShop = document.getElementById("drawingShop");
+  drawingShop.innerHTML = "";
   DRAWINGS.forEach(function(d){
     const owned = state.collection.includes(d.name);
     const div = document.createElement("div");
     div.className = "item";
-    div.innerHTML = "<h3>"+d.name+"</h3><p>"+d.desc+"</p><p class='price'>"+d.price+" treats</p><p class='small'>"+(owned ? "Claimed — in your collection." : "Buying this funds Biscuit's adventures: the "+d.price+" treats go to his wander fund.")+"</p>";
+    div.innerHTML = "<div style='font-size:2.2rem' aria-hidden='true'>"+d.icon+"</div><h3>"+d.name+"</h3><p>"+d.desc+"</p><p class='price'>"+d.price+" treats</p><p class='small'>"+(owned ? "Claimed — in your collection." : "Buying this funds Biscuit's adventures: the "+d.price+" treats go to his wander fund.")+"</p>";
     const b = document.createElement("button");
     b.textContent = owned ? "Claimed ✓" : "Buy with "+d.price+" treats";
     b.disabled = owned || state.pouch < d.price;
@@ -187,8 +207,10 @@ function render(){
       save(); render();
       document.getElementById("message").textContent = "You bought “"+d.name+"” for "+d.price+" treats — those treats just funded Biscuit's adventures. His wander fund is now "+state.jar+" / "+GOAL+".";
     };
-    div.appendChild(b); shop.appendChild(div);
+    div.appendChild(b); drawingShop.appendChild(div);
   });
+  const treatShop = document.getElementById("treatShop");
+  treatShop.innerHTML = "";
   const pack = document.createElement("div");
   pack.className = "item";
   pack.innerHTML = "<h3>Treat Pack for Biscuit</h3><p>A pack of 5 treats, just for him.</p><p class='price'>5 treats → his wander fund</p><p class='small'>Claim a pack and 5 treats go straight into his fund — no money, just a kind claim here. Real treats via Instagram DM.</p>";
@@ -199,20 +221,26 @@ function render(){
     save(); render();
     document.getElementById("message").textContent = "Treat pack claimed! +5 treats to Biscuit's wander fund — now "+state.jar+" / "+GOAL+". His energy lifted, and his next wander just got a little braver.";
   };
-  pack.appendChild(pb); shop.appendChild(pack);
+  pack.appendChild(pb); treatShop.appendChild(pack);
 }
-document.getElementById("patBtn").onclick = function(){ state.pats++; save(); render(); document.getElementById("message").textContent = "Pat pat. Biscuit wags his tail."; };
+document.getElementById("patBtn").onclick = function(){
+  if(!canPat()){ document.getElementById("message").textContent = "Already patted Biscuit today — come back tomorrow for another pat."; return; }
+  state.patDate = todayStr(); state.pats++; state.jar++; state.treatsGiven++; save(); render();
+  document.getElementById("message").textContent = "Pat pat. Biscuit wags his tail. That is your 1 pat for today — 1 treat into his wander fund. Come back tomorrow to pat him again.";
+};
 document.getElementById("treatBtn").onclick = function(){
   if(state.pouch<1) return;
   state.pouch--; state.jar++; state.treatsGiven++; save(); render();
   document.getElementById("message").textContent = "You gave Biscuit a treat! His energy is now "+energy()+"% and his next wander leans a little braver.";
 };
 document.getElementById("feedBtn").onclick = function(){
+  if(!canFeed()){ document.getElementById("message").textContent = "Already fed Biscuit today — come back tomorrow to feed him again."; return; }
   if(state.pouch<1) return;
+  state.feedDate = todayStr();
   state.pouch--; state.meals++; state.jar++; state.treatsGiven++; save(); render();
-  document.getElementById("message").textContent = "Fed! Biscuit licks his lips. One meal, and another treat into his wander fund.";
+  document.getElementById("message").textContent = "Fed! Biscuit licks his lips. One meal — that is your 1 feed for today — and another treat into his wander fund.";
 };
-document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0}; save(); render(); document.getElementById("message").textContent = ""; } };
+document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate; state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, patDate:keepPat, feedDate:keepFeed}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies."; } };
 render();
 </script>
 </body>
