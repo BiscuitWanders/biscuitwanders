@@ -68,3 +68,12 @@ explicitly as private — do not create it by copying this public repo, and do
 not fall back to this repo if a private one cannot be created. The export
 into it would be done by the AI Dog Space (server-side), never by the static
 site, and it would still prune entries older than 7 days.
+
+Note (2026-11-22): an attempt to create that private repo from Muse via the
+GitHub integration failed with `403 Resource not accessible by integration`
+— the GitHub App token cannot create repositories. So the private repo has
+**not** been created. To make one, Joel needs to create it himself in GitHub
+(New repository → Private, e.g. `biscuit-purchases-private`), then the Space
+can be pointed at it. Until then, there is **no central GitHub list** of
+purchase IDs at all — IDs live only in each visitor's own browser (7 days)
+and in the AI Dog Space's private database.
