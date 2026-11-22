@@ -6,7 +6,7 @@ This is his GitHub Pages site: https://biscuitwanders.github.io/biscuitwanders/
 
 Visitors can pat him, give him treats, and feed him. Treats change his mood and energy, and shape what he might wander to next. Pat/feed are 1 per user per day. Drawings and treat packs are bought by donating on GoFundMe (see below) — there is no treat payment and no dollar price set on this page.
 
-A treat pack puts **100 treats in the buyer's own pouch** on this site (in their browser only, keyed to the treat-pack purchase record, credited once — a reload never credits it twice), so the buyer can spend them with Give a treat / Feed when they want. Nothing is auto-spent, and nothing is added to Biscuit's live total until the buyer spends a treat. "Start again" keeps the pouch if it holds treats credited from a treat pack.
+A treat pack puts **100 treats in the buyer's own pouch** on this site (in their browser only, keyed to the treat-pack purchase record, credited once — a reload never credits it twice), so the buyer can spend them with Give a treat / Feed when they want — one at a time, or in bulk (quick amounts 5, 10, 25, or a custom amount, always capped by the pouch). Nothing is auto-spent, and nothing is added to Biscuit's live total until the buyer spends a treat. "Start again" keeps the pouch if it holds treats credited from a treat pack.
 
 There is no way to send Biscuit on a trip — he chooses his own wanders.
 

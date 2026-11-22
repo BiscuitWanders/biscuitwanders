@@ -23,6 +23,9 @@ button{cursor:pointer;border:0;border-radius:999px;padding:12px 18px;font-size:1
 button.secondary{background:#fff;color:var(--green);border:2px solid var(--green)}
 .gofundme{display:inline-block;background:#00b964;color:#fff;padding:12px 20px;border-radius:999px;font-weight:700;text-decoration:none;margin:8px 6px 8px 0}
 button:disabled{opacity:.45;cursor:not-allowed}
+.bulk{background:var(--soft);border-radius:12px;padding:12px;margin:12px 0}
+.bulk input[type=number]{width:90px;padding:10px;border:2px solid var(--green);border-radius:12px;font-size:1rem;margin:6px 6px 6px 0}
+.bulk .bulkmsg{font-weight:700;color:#92400e;margin:6px 0 0}
 .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}
 .meter{background:var(--soft);border-radius:12px;padding:12px}
 .bar{height:14px;background:#fff;border:1px solid #cbd5c9;border-radius:999px;overflow:hidden;margin-top:6px}
@@ -77,6 +80,21 @@ a{color:var(--bright)}
     <p>Pat him, give him a treat, or feed him. Watch his mood, energy and next wander change.</p>
     <button id="patBtn">👋 Pat Biscuit (1 a day)</button>
     <button id="treatBtn">🦴 Give a treat (1 treat)</button>
+    <div class="bulk" id="bulkTreat" aria-label="Give treats in bulk">
+      <strong>🦴 Give treats in bulk</strong> — <span id="bulkPouch">Pouch: 10 treats</span>
+      <div>
+        <button class="bulkBtn" data-amount="5">Give 5 treats</button>
+        <button class="bulkBtn" data-amount="10">Give 10 treats</button>
+        <button class="bulkBtn" data-amount="25">Give 25 treats</button>
+      </div>
+      <div>
+        <label for="bulkAmount">Custom amount:</label>
+        <input type="number" id="bulkAmount" min="1" max="10" step="1" inputmode="numeric" placeholder="e.g. 7" aria-label="Custom number of treats to give">
+        <button id="bulkGiveBtn">Give treats</button>
+      </div>
+      <p class="bulkmsg" id="bulkMessage" role="status"></p>
+      <p class="small">Bulk treats come from your pouch — you cannot give more than your pouch holds. Daily pat/feed limits (1 per user per day) still apply to Pat and Feed, not to bulk treating.</p>
+    </div>
     <button id="feedBtn">🍽️ Feed Biscuit (1 treat, once a day)</button>
     <button class="secondary" id="resetBtn">Start again</button>
     <div class="meters">
@@ -183,7 +201,7 @@ a{color:var(--bright)}
       <li><strong>$1 donation</strong> = <strong>20 treats</strong></li>
       <li><strong>Pat on this site:</strong> <strong>1 treat</strong> — and only <strong>1 pat per user per day</strong>. Once you have patted Biscuit today, the pat button is off until tomorrow, so treats cannot be farmed by tapping it again and again.</li>
       <li><strong>Feed on this site:</strong> <strong>1 treat</strong> from your pouch → 1 meal, +1 treat into his fund — and only <strong>1 feed per user per day</strong>. Once you have fed him today, the feed button is off until tomorrow.</li>
-      <li><strong>Give a treat:</strong> 1 treat from your pouch → 1 treat into his wander fund, +energy. Your pouch is limited, so this cannot be farmed either.</li>
+      <li><strong>Give a treat:</strong> 1 treat from your pouch → 1 treat into his wander fund, +energy. Your pouch is limited, so this cannot be farmed either. <strong>Bulk treating:</strong> give 5, 10 or 25 treats at once, or a custom amount — always capped by what is in your pouch (you cannot give more than you hold, and the amount must be at least 1).</li>
       <li><strong>Drawings:</strong> tap a drawing to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria (100% of donations go to Wildlife Victoria) with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID and your email to receive the printable drawing by email. No dollar price is set here — choose your donation amount on GoFundMe. Drawings are self-print printouts to print at home. Personal use only — © BiscuitWanders, no copying or resale.</li>
       <li><strong>Treat packs:</strong> tap to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID. A treat pack puts <strong>100 treats in your pouch</strong> — they are yours to use when you want (Give a treat / Feed), and are not added to Biscuit's total until you spend them. No dollar price is set here — choose your donation amount on GoFundMe.</li>
       <li><strong>Charity:</strong> 100% of donations on Biscuit's GoFundMe go to Wildlife Victoria. Shop purchases are donations made on GoFundMe for Wildlife Victoria — there is no GoFundMe checkout or API on this site, and this site cannot verify a GoFundMe donation. The charity fund meter on this page only counts earlier in-site treat purchases.</li>
@@ -512,6 +530,14 @@ function render(){
   const coll = document.getElementById("collection");
   coll.textContent = state.collection.length ? "Your collection: " + state.collection.join(", ") + "." : "Drawings are no longer claimed here — tap a drawing below to get your unique purchase ID, donate on GoFundMe with that ID in your donation message, then message @biscuit.wanders on Instagram with that ID and your email to receive the printable drawing by email. Drawings claimed here before this change still appear in your collection.";
   document.getElementById("treatBtn").disabled = state.pouch < 1;
+  var bulkPouchEl = document.getElementById("bulkPouch");
+  if(bulkPouchEl) bulkPouchEl.textContent = "Pouch: " + state.pouch + " treats";
+  var bulkInput = document.getElementById("bulkAmount");
+  if(bulkInput) bulkInput.max = String(state.pouch);
+  var bulkBtns = document.querySelectorAll ? document.querySelectorAll(".bulkBtn") : [];
+  for(var bi=0; bi<bulkBtns.length; bi++){ bulkBtns[bi].disabled = state.pouch < Number(bulkBtns[bi].getAttribute("data-amount")); }
+  var bulkGiveBtn = document.getElementById("bulkGiveBtn");
+  if(bulkGiveBtn) bulkGiveBtn.disabled = state.pouch < 1;
   const patBtn = document.getElementById("patBtn");
   patBtn.disabled = !canPat();
   patBtn.textContent = canPat() ? "👋 Pat Biscuit (1 treat, once a day)" : "👋 Patted today — come back tomorrow";
@@ -560,7 +586,7 @@ function render(){
   treatShop.innerHTML = "";
   const pack = document.createElement("div");
   pack.className = "item";
-  pack.innerHTML = "<h3>Treat Pack for Biscuit</h3><p>A pack of 100 treats for your pouch — spend them when you want, one at a time.</p><p class='small'>To give Biscuit a treat pack, tap below to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID. The 100 treats go into your pouch, not straight to Biscuit — use them with Give a treat or Feed, when you want. No dollar price is set here — choose your donation amount on GoFundMe.</p>";
+  pack.innerHTML = "<h3>Treat Pack for Biscuit</h3><p>A pack of 100 treats for your pouch — spend them when you want — one at a time, or in bulk (5, 10, 25 or a custom amount).</p><p class='small'>To give Biscuit a treat pack, tap below to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID. The 100 treats go into your pouch, not straight to Biscuit — use them with Give a treat or Feed, when you want. No dollar price is set here — choose your donation amount on GoFundMe.</p>";
   const pb = document.createElement("button");
   pb.textContent = "💚 Donate on GoFundMe — treat pack for Biscuit";
   pb.onclick = function(){
@@ -583,6 +609,32 @@ document.getElementById("treatBtn").onclick = function(){
   if(state.pouch<1) return;
   state.pouch--; state.jar++; state.treatsGiven++; save(); render();
   document.getElementById("message").textContent = "You gave Biscuit a treat! His energy is now "+energy()+"% and his next wander leans a little braver.";
+};
+// Bulk treating: give N treats at once, capped by the pouch. Validates the
+// amount (whole number, at least 1, no more than the pouch holds) and refuses
+// invalid amounts without changing any state. Pat/feed daily limits do not
+// apply here — this spends pouch treats only, when the visitor wants to.
+function giveTreatsBulk(n){
+  var bulkMsg = document.getElementById("bulkMessage");
+  function fail(msg){ if(bulkMsg) bulkMsg.textContent = msg; return false; }
+  if(typeof n !== "number" || !isFinite(n) || Math.floor(n) !== n) return fail("Enter a whole number of treats to give.");
+  if(n < 1) return fail("Give at least 1 treat.");
+  if(n > state.pouch) return fail("You only have " + state.pouch + " treats in your pouch — you cannot give " + n + ".");
+  state.pouch -= n; state.jar += n; state.treatsGiven += n; save(); render();
+  if(bulkMsg) bulkMsg.textContent = "You gave Biscuit " + n + (n === 1 ? " treat" : " treats") + "! His energy is now " + energy() + "%. Your pouch now has " + state.pouch + " treats.";
+  return true;
+}
+var bulkBtns2 = document.querySelectorAll ? document.querySelectorAll(".bulkBtn") : [];
+for(var bbi=0; bbi<bulkBtns2.length; bbi++){
+  (function(btn){
+    btn.onclick = function(){ giveTreatsBulk(Number(btn.getAttribute("data-amount"))); };
+  })(bulkBtns2[bbi]);
+}
+document.getElementById("bulkGiveBtn").onclick = function(){
+  var raw = document.getElementById("bulkAmount").value;
+  var n = Number(raw);
+  if(raw === "" || raw === null || typeof raw === "undefined") { var bm = document.getElementById("bulkMessage"); if(bm) bm.textContent = "Enter a whole number of treats to give."; return; }
+  giveTreatsBulk(n);
 };
 document.getElementById("feedBtn").onclick = function(){
   if(!canFeed()){ document.getElementById("message").textContent = "Already fed Biscuit today — come back tomorrow to feed him again."; return; }

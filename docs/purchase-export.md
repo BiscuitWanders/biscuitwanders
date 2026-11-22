@@ -53,6 +53,18 @@ the purchase record made in the browser, same trust model as the rest of
 the site. "Start again" keeps the pouch if it holds treats credited
 from a treat pack.
 
+## Bulk treating
+
+Give a treat also works in bulk: quick amounts 5, 10 and 25, plus a custom
+amount input. Every bulk give is capped by the visitor's own pouch — the
+amount must be a whole number, at least 1, and no more than the pouch holds;
+an invalid amount is refused with an on-page message and nothing changes.
+A successful bulk give moves that many treats from the pouch into Biscuit's
+fund/energy in one go (same per-treat effect as a single give) and persists
+in localStorage. Pat/feed daily limits (1 per user per day) still apply to
+Pat and Feed only, not to bulk treating. Nothing is added to the live total
+(`treats.json`) until the visitor actually spends a treat.
+
 ## Retention
 
 - **7 days.** Entries older than 7 days are pruned automatically:
