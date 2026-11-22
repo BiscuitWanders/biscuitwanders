@@ -86,7 +86,12 @@ a{color:var(--bright)}
       <div class="meter"><div>Biscuit's energy</div><div class="big" id="energy">20%</div><div class="bar"><div id="energyBar" style="width:20%"></div></div><div class="small">Treats and meals lift his energy. Pats lift his spirits.</div></div>
     </div>
     <div class="meter">
-      <div><strong>Wander fund — firefly meadow goal: 80 treats</strong></div>
+      <div><strong>🐶 Biscuit's treat jar — live total, all visitors</strong></div>
+      <div class="big" id="liveJar">Loading live total…</div>
+      <div class="bar gold"><div id="liveJarBar" style="width:0%"></div></div>
+      <p class="small" id="liveJarNote">Fetching Biscuit's live treat total…</p>
+      <p class="small" id="liveJarUpdated"></p>
+      <div style="margin-top:12px"><strong>Your treats on this device</strong></div>
       <div class="big" id="jar">0 / 80 treats</div>
       <div class="bar gold"><div id="jarBar" style="width:0%"></div></div>
       <p class="small" id="fundNote">Every treat you give, and every drawing you buy, goes into this fund.</p>
@@ -473,7 +478,7 @@ function render(){
   document.getElementById("energyBar").style.width = energy() + "%";
   document.getElementById("mood").textContent = mood();
   document.getElementById("nextWander").innerHTML = nextWander();
-  document.getElementById("fundNote").textContent = state.jar>=GOAL ? "Goal reached! Biscuit's firefly meadow is funded — thank you." : "Every treat you give goes into this fund. Drawings and treat packs are now bought by donating on GoFundMe — see the Shop. " + (GOAL-state.jar) + " treats to go.";
+  document.getElementById("fundNote").textContent = state.jar>=GOAL ? "Goal reached on this device! Biscuit's firefly meadow is funded — thank you." : "These are the treats you have given on this device. Drawings and treat packs are now bought by donating on GoFundMe — see the Shop. " + (GOAL-state.jar) + " treats to go on this device — the live total for all visitors is above.";
   const coll = document.getElementById("collection");
   coll.textContent = state.collection.length ? "Your collection: " + state.collection.join(", ") + "." : "Drawings are no longer claimed here — tap a drawing below to get your unique purchase ID, donate on GoFundMe with that ID in your donation message, then message @biscuit.wanders on Instagram with that ID and your email to receive the printable drawing by email. Drawings claimed here before this change still appear in your collection.";
   document.getElementById("treatBtn").disabled = state.pouch < 1;
@@ -602,9 +607,50 @@ document.getElementById("continueToGoFundMeBtn").onclick = function(){
   // and the buyer has been asked to copy it first.
   openGoFundMe();
 };
+// Live treat total — aggregate numbers only, from the public treats.json
+// published alongside this site (https://biscuitwanders.github.io/biscuitwanders/treats.json).
+// It contains ONLY aggregate numbers — total treats, the wander-fund goal
+// and a last-updated time. No purchase IDs, no user IDs, no names, no emails.
+// The Space publishes it from Biscuit's real treat jar; this page never
+// fetches or displays any private list. If the file is missing or the fetch
+// fails, the live total is shown as unavailable and the visitor's own local
+// counts below keep working — the page never crashes on a missing counter.
+var LIVE_TREATS_URL = "treats.json";
+function loadLiveTreats(){
+  var jarEl = document.getElementById("liveJar");
+  var barEl = document.getElementById("liveJarBar");
+  var noteEl = document.getElementById("liveJarNote");
+  var updEl = document.getElementById("liveJarUpdated");
+  function unavailable(){
+    if(jarEl) jarEl.textContent = "Live total not available yet";
+    if(barEl) barEl.style.width = "0%";
+    if(noteEl) noteEl.textContent = "The live total (all visitors) is not available yet — your treats on this device are shown below, and your local counts still work.";
+    if(updEl) updEl.textContent = "";
+  }
+  if(typeof fetch === "undefined"){ unavailable(); return; }
+  fetch(LIVE_TREATS_URL, {cache: "no-store"}).then(function(res){
+    if(!res || !res.ok) throw new Error("live counter not available");
+    return res.json();
+  }).then(function(data){
+    var total = data && data.totalTreats;
+    var goal = (data && typeof data.goalTreats === "number" && data.goalTreats > 0) ? data.goalTreats : GOAL;
+    if(typeof total !== "number" || !isFinite(total) || total < 0) throw new Error("live counter invalid");
+    if(jarEl) jarEl.textContent = total + " treats";
+    if(barEl) barEl.style.width = Math.min(100, total/goal*100) + "%";
+    if(noteEl) noteEl.textContent = total >= goal
+      ? "Wander fund — firefly meadow: " + total + " / " + goal + " treats — goal reached! Biscuit's firefly meadow is funded."
+      : "Wander fund — firefly meadow: " + total + " / " + goal + " treats — " + (goal - total) + " treats to go.";
+    if(updEl){
+      var when = data.updatedAt ? new Date(data.updatedAt) : null;
+      updEl.textContent = (when && !isNaN(when.getTime())) ? "Last updated: " + when.toLocaleString() : "";
+    }
+  }).catch(function(){ unavailable(); });
+}
 document.getElementById("exportPurchasesJsonBtn").onclick = function(){ exportPurchases("json"); };
 document.getElementById("exportPurchasesCsvBtn").onclick = function(){ exportPurchases("csv"); };
 render();
+loadLiveTreats();
+if(typeof setInterval !== "undefined"){ setInterval(loadLiveTreats, 5 * 60 * 1000); }
 </script>
 <div id="printSheet" aria-hidden="true"></div>
 </body>

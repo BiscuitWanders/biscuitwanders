@@ -84,3 +84,18 @@ product / image, created and expiry dates) plus a one-tap link to message
 @biscuit.wanders on Instagram. That message is what gets the ID into the
 central private list — the Space side that accepts website IDs is built
 separately, and this site does not claim to register an ID by itself.
+
+## Live treat total — public aggregate only (`treats.json`)
+
+The page now shows Biscuit's live treat jar total, fetched from the public
+`treats.json` published alongside this site
+(`https://biscuitwanders.github.io/biscuitwanders/treats.json`).
+It contains ONLY aggregate numbers — `totalTreats`, `goalTreats`,
+`updatedAt` — and no purchase IDs, user IDs, names or emails. The page
+shows the live total ("Biscuit's treat jar: X treats" / "Wander fund —
+firefly meadow: X / 80 treats" + last updated) separately from the
+visitor's own local counts on this device, which are unchanged. If the
+file is missing or the fetch fails, the page shows "Live total not
+available yet" and keeps working on local counts. The Space publishes
+`treats.json` from Biscuit's real treat jar; this static site cannot
+update it itself — the file in this repo is the published snapshot.
