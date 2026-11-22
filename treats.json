@@ -1,1 +1,17 @@
-{"goalTreats":80,"note":"Aggregate only: Biscuit's live treat jar total from the AI Dog Space. No purchase IDs, no user IDs, no names, no emails.","totalTreats":128,"updatedAt":"2026-11-22T08:46:57Z"}
+{
+  "totalTreats": 128,
+  "goalTreats": 80,
+  "updatedAt": "2026-11-22T08:50:54.733Z",
+  "note": "Aggregate only: Biscuit's live treat totals from the AI Dog Space. No purchase IDs, no user IDs, no names, no emails.",
+  "treatsInJar": 128,
+  "treatsCredited": 100,
+  "treatsCreditedCount": 1,
+  "savingsTreats": 5,
+  "dreamText": "To trot along the Nile following the ancient courier routes, sniffing every old post stop",
+  "dreamCostTreats": 80,
+  "wanderFund": {
+    "goalTreats": 80,
+    "treats": 128,
+    "percent": 100
+  }
+}
