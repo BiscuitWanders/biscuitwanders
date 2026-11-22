@@ -60,20 +60,21 @@
   this repo — that would publish them.
 - Do not add purchase IDs to the public site's HTML.
 
-## If a private GitHub repo is wanted later
+## The private GitHub list — and how website IDs get into it
 
-A separate **private** repo (not this one) could hold an exported list, with
-access limited to Joel. That repo does not exist yet and must be created
-explicitly as private — do not create it by copying this public repo, and do
-not fall back to this repo if a private one cannot be created. The export
-into it would be done by the AI Dog Space (server-side), never by the static
-site, and it would still prune entries older than 7 days.
+A separate **private** repo now exists, created by Joel:
+`BiscuitWanders/Biscuitwanders-purchases` (verified private, empty at
+creation). The AI Dog Space pushes its private 7-day export snapshot
+(`purchases.json` + `purchases.csv`) into that repo on a schedule, pruning
+entries older than 7 days. Nothing is ever pushed to this public repo.
 
-Note (2026-11-22): an attempt to create that private repo from Muse via the
-GitHub integration failed with `403 Resource not accessible by integration`
-— the GitHub App token cannot create repositories. So the private repo has
-**not** been created. To make one, Joel needs to create it himself in GitHub
-(New repository → Private, e.g. `biscuit-purchases-private`), then the Space
-can be pointed at it. Until then, there is **no central GitHub list** of
-purchase IDs at all — IDs live only in each visitor's own browser (7 days)
-and in the AI Dog Space's private database.
+**The gap, and the registration route:** IDs generated on this static site
+start in the visitor's own browser only — the site cannot write to GitHub or
+to the Space from a visitor's browser, so a website ID is **not** in that
+private repo until the buyer registers it. Registration is the buyer's
+Instagram message: after an ID is generated and copied, the page shows a
+registration step with a ready-to-send message (ID, product / image, created
+and expiry dates) plus a one-tap link to message @biscuit.wanders on
+Instagram. That message is what gets the ID into the central private list —
+the Space side that accepts website IDs is built separately, and this site
+does not claim to register an ID by itself.

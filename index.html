@@ -117,12 +117,25 @@ a{color:var(--bright)}
       <button id="continueToGoFundMeBtn" class="secondary" type="button" style="display:none">Continue to GoFundMe</button>
       <p id="purchaseIdStatus" role="status"></p>
       <p><strong>Put this exact ID in your GoFundMe donation message.</strong> Then message <a href="https://www.instagram.com/biscuit.wanders/">@biscuit.wanders on Instagram</a> with this ID and your email to receive the printable drawing by email.</p>
+      <div id="registerBox" style="background:#fff;border:2px solid #16a34a;border-radius:12px;padding:12px;margin:12px 0">
+        <strong>Step 2 — Register this ID in the central list</strong>
+        <p>This site is a static page — it cannot send your ID to the central list by itself. Your ID only reaches the central private list when you message it to Biscuit. Please do that now, while you have it:</p>
+        <ol>
+          <li>Put this exact ID in your GoFundMe donation message (on GoFundMe).</li>
+          <li>Message <a href="https://www.instagram.com/biscuit.wanders/">@biscuit.wanders on Instagram</a> with this ID, the product, and your email — that message is what registers it centrally.</li>
+        </ol>
+        <p class="small"><strong>Ready-to-send message:</strong></p>
+        <p id="registerMessagePreview" style="background:#f0fdf4;border:1px solid #d9ead9;border-radius:8px;padding:8px;white-space:pre-wrap"></p>
+        <button id="copyRegisterMessageBtn" class="secondary" type="button">📋 Copy registration message</button>
+        <a class="gofundme" id="messageInstagramBtn" href="https://ig.me/m/biscuit.wanders" target="_blank" rel="noopener">💬 Message @biscuit.wanders on Instagram</a>
+        <p class="small">The message carries your ID, the product / image it belongs to, and its expiry date. Add your email before you send it — the printable drawing is emailed to you. For a treat pack, no email is needed to receive anything, but the message still registers your treats.</p>
+      </div>
       <p class="small">This ID is stored in <strong>your browser only</strong> for <strong>7 days</strong>, linked to the drawing or treat pack below, so it can be matched later. After 7 days it is removed from this browser. It is copied to your clipboard before you are taken to GoFundMe. It is never published on this site or sent anywhere else.</p>
       <p class="small" id="purchaseIdFor"></p>
     </div>
     <div class="note" id="myPurchaseIds" style="background:#fff;border-color:#d9ead9">
       <strong>Your purchase IDs — this browser only, kept 7 days</strong>
-      <p class="small">These are only the IDs started in <em>this</em> browser. They are never published on this site, never sent to GitHub, and never shared with other visitors. After 7 days each ID is removed from this browser automatically.</p>
+      <p class="small">These are only the IDs started in <em>this</em> browser. They are never published on this site, never sent to GitHub, and never shared with other visitors. After 7 days each ID is removed from this browser automatically. They are <strong>not</strong> in the central private list until you register them — use the “Register” button beside an ID, which copies a ready-to-send message (ID, product and expiry) for @biscuit.wanders on Instagram.</p>
       <ul id="purchaseList"></ul>
       <button id="exportPurchasesJsonBtn" class="secondary" type="button">⬇️ Download my purchase IDs (JSON)</button>
       <button id="exportPurchasesCsvBtn" class="secondary" type="button">⬇️ Download my purchase IDs (CSV)</button>
@@ -264,6 +277,26 @@ function showManualCopyPath(purchase, itemLabel){
   if(btn) btn.style.display = "";
   document.getElementById("message").textContent = "Your purchase ID is " + purchase.id + " for " + itemLabel + " — copying to the clipboard was blocked, so please copy it with the Copy button, then continue to GoFundMe. Put this exact ID in your GoFundMe donation message.";
 }
+var currentPurchase = null; // purchase currently shown in the purchase ID box
+function registrationMessage(purchase){
+  // Ready-to-send message that carries the ID and product with the buyer.
+  // It is copied by the buyer and pasted into an Instagram message to
+  // @biscuit.wanders — that message is what registers the ID centrally.
+  // The site itself cannot write to GitHub or the Space from a browser.
+  var expiry = purchaseExpiresAt(purchase);
+  var what = purchase.kind === "treat-pack"
+    ? "I just gave Biscuit a Treat Pack for Biscuit"
+    : "I just bought the drawing \u201c" + purchase.item + "\u201d";
+  var ask = purchase.kind === "treat-pack"
+    ? "No printable is needed for treats \u2014 this message is just to register my treats."
+    : "Please send me the printable drawing by email.";
+  return "Hi Biscuit! " + what + ".\nMy purchase ID is " + purchase.id + ".\nProduct: " + purchase.item + (purchase.productId ? " (" + purchase.productId + (purchase.imageRef ? ", " + purchase.imageRef : "") + ")" : "") + ".\nCreated: " + purchase.createdAt + ". Expires: " + expiry + ".\nI put this exact ID in my GoFundMe donation message for Wildlife Victoria (100% of donations go to Wildlife Victoria).\nMy email is: [add your email here]\n" + ask + " Thank you! \uD83D\uDC3E";
+}
+function showRegistration(purchase){
+  currentPurchase = purchase;
+  var preview = document.getElementById("registerMessagePreview");
+  if(preview) preview.textContent = registrationMessage(purchase);
+}
 function renderPurchaseList(){
   var list = document.getElementById("purchaseList");
   if(!list) return;
@@ -277,7 +310,17 @@ function renderPurchaseList(){
   }
   state.purchases.forEach(function(p){
     var li = document.createElement("li");
-    li.textContent = p.id + " — " + p.item + (p.productId ? " (" + p.productId + (p.imageRef ? ", " + p.imageRef : "") + ")" : "") + " — created " + p.createdAt + ", expires " + purchaseExpiresAt(p);
+    li.textContent = p.id + " — " + p.item + (p.productId ? " (" + p.productId + (p.imageRef ? ", " + p.imageRef : "") + ")" : "") + " — created " + p.createdAt + ", expires " + purchaseExpiresAt(p) + " ";
+    var regBtn = document.createElement("button");
+    regBtn.textContent = "\uD83D\uDCCB Register this ID";
+    regBtn.className = "secondary";
+    regBtn.type = "button";
+    regBtn.onclick = function(){
+      copyTextToClipboard(registrationMessage(p)).then(function(copied){
+        document.getElementById("message").textContent = copied ? "Registration message for " + p.id + " copied — paste it into a message to @biscuit.wanders on Instagram (add your email first) to register this ID centrally." : "Copying was blocked — please copy the registration message manually, then message @biscuit.wanders on Instagram with " + p.id + ".";
+      });
+    };
+    li.appendChild(regBtn);
     list.appendChild(li);
   });
 }
@@ -336,6 +379,7 @@ function showPurchaseId(purchase, scroll){
   el.textContent = purchase.id;
   var ref = purchase.productId ? " (" + purchase.productId + (purchase.imageRef ? ", " + purchase.imageRef : "") + ")" : "";
   if(forEl) forEl.textContent = "For: " + purchase.item + ref + " — started " + purchase.createdAt + ". Stored in this browser only for 7 days, until " + purchaseExpiresAt(purchase) + ".";
+  showRegistration(purchase);
   box.style.display = "block";
   if(scroll && box.scrollIntoView) box.scrollIntoView();
 }
@@ -502,6 +546,12 @@ document.getElementById("copyPurchaseIdBtn").onclick = function(){
     } else {
       document.getElementById("message").textContent = "Copying was blocked in this browser — please select the purchase ID above and copy it manually, then tap “Continue to GoFundMe”.";
     }
+  });
+};
+document.getElementById("copyRegisterMessageBtn").onclick = function(){
+  if(!currentPurchase) return;
+  copyTextToClipboard(registrationMessage(currentPurchase)).then(function(copied){
+    document.getElementById("message").textContent = copied ? "Registration message copied — paste it into a message to @biscuit.wanders on Instagram (add your email first) to register this ID centrally." : "Copying was blocked — please select the ready-to-send message above and copy it manually, then message @biscuit.wanders on Instagram.";
   });
 };
 document.getElementById("continueToGoFundMeBtn").onclick = function(){
