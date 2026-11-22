@@ -16,7 +16,9 @@
   "productId": "scotsman",
   "imageRef": "PRINTS.scotsman / scotsman-printout.svg",
   "createdAt": "2026-11-22T07:00:00.000Z",
-  "expiresAt": "2026-11-29T07:00:00.000Z"
+  "expiresAt": "2026-11-29T07:00:00.000Z",
+  "pouchCredited": false,
+  "pouchTreats": 100
 }
 ```
 
@@ -31,6 +33,25 @@
 - `productId` / `imageRef` — the specific image/product the ID belongs to, so
   an ID shown or matched later is always clear about which drawing it is for.
 - `createdAt` / `expiresAt` — `expiresAt` is `createdAt` + **7 days**.
+
+## Treat packs — 100 treats in the buyer's pouch
+
+A treat-pack purchase puts **100 treats in that visitor's own pouch** on
+this site (localStorage, in their browser only), to spend with Give a treat
+/ Feed when they want. The credit is keyed only to the treat-pack purchase
+record in that browser and is marked `pouchCredited` on the record, so a
+reload never credits it twice; a browser with no such record gets nothing.
+Nothing is auto-spent and nothing is added to the live total (`treats.json`)
+until the buyer spends a treat. The pouch total is shown on the page
+("Your treat pouch, X treats") and the purchase list / purchase ID box
+show that the pack's treats are in the pouch, ready to use. The private
+JSON/CSV export includes `pouchCredited` / `pouchTreats` per purchase.
+No purchase ID or user ID is named in the site code for this — the credit
+follows the purchase record. Note the honest limit: this static site
+cannot verify a GoFundMe donation (no API), so the pouch credit follows
+the purchase record made in the browser, same trust model as the rest of
+the site. "Start again" keeps the pouch if it holds treats credited
+from a treat pack.
 
 ## Retention
 

@@ -82,7 +82,7 @@ a{color:var(--bright)}
     <div class="meters">
       <div class="meter"><div>Pats</div><div class="big" id="pats">0</div></div>
       <div class="meter"><div>Meals</div><div class="big" id="meals">0</div></div>
-      <div class="meter"><div>Your treat pouch</div><div class="big" id="pouch">10 treats</div><div class="small">Start with 10. Buy a treat pack below to top up.</div></div>
+      <div class="meter"><div>Your treat pouch</div><div class="big" id="pouch">10 treats</div><div class="small">Start with 10. A treat pack adds 100 treats to your pouch, to use when you want.</div></div>
       <div class="meter"><div>Biscuit's energy</div><div class="big" id="energy">20%</div><div class="bar"><div id="energyBar" style="width:20%"></div></div><div class="small">Treats and meals lift his energy. Pats lift his spirits.</div></div>
     </div>
     <div class="meter">
@@ -185,7 +185,7 @@ a{color:var(--bright)}
       <li><strong>Feed on this site:</strong> <strong>1 treat</strong> from your pouch → 1 meal, +1 treat into his fund — and only <strong>1 feed per user per day</strong>. Once you have fed him today, the feed button is off until tomorrow.</li>
       <li><strong>Give a treat:</strong> 1 treat from your pouch → 1 treat into his wander fund, +energy. Your pouch is limited, so this cannot be farmed either.</li>
       <li><strong>Drawings:</strong> tap a drawing to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria (100% of donations go to Wildlife Victoria) with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID and your email to receive the printable drawing by email. No dollar price is set here — choose your donation amount on GoFundMe. Drawings are self-print printouts to print at home. Personal use only — © BiscuitWanders, no copying or resale.</li>
-      <li><strong>Treat packs:</strong> tap to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID. No dollar price is set here — choose your donation amount on GoFundMe.</li>
+      <li><strong>Treat packs:</strong> tap to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID. A treat pack puts <strong>100 treats in your pouch</strong> — they are yours to use when you want (Give a treat / Feed), and are not added to Biscuit's total until you spend them. No dollar price is set here — choose your donation amount on GoFundMe.</li>
       <li><strong>Charity:</strong> 100% of donations on Biscuit's GoFundMe go to Wildlife Victoria. Shop purchases are donations made on GoFundMe for Wildlife Victoria — there is no GoFundMe checkout or API on this site, and this site cannot verify a GoFundMe donation. The charity fund meter on this page only counts earlier in-site treat purchases.</li>
       <li><strong>No trips:</strong> there is no way to send Biscuit anywhere. He chooses his own wanders.</li>
     </ul>
@@ -227,6 +227,31 @@ const GOFUNDME_URL = "https://www.gofundme.com/f/biscuit-the-ai-dog-is-raising-m
 // Purchase IDs are stored per visitor, in that visitor's own browser
 // (localStorage, key biscuit-v1), for 7 days only — never in a shared list.
 const PURCHASE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Treat packs go to the buyer's pouch, not straight to Biscuit's total:
+// a treat-pack purchase puts 100 treats in this visitor's own pouch, to
+// spend with Give a treat / Feed when they want. Nothing is auto-spent and
+// nothing is added to the live total until the user spends a treat.
+// No purchase ID or user ID is named here — the credit is keyed only to a
+// treat-pack purchase record in this browser, and the record is marked
+// pouchCredited so a reload never credits it twice. A browser with no such
+// record gets nothing. The site cannot verify a GoFundMe donation (no API),
+// so the credit follows the purchase record made in this browser.
+const POUCH_TREATS_PER_TREAT_PACK = 100;
+function creditPouchForTreatPacks(){
+  if(!state.purchases) state.purchases = [];
+  var changed = false;
+  state.purchases.forEach(function(p){
+    var isTreatPack = p.kind === "treat-pack" || p.kind === "treat pack" || p.kind === "treats";
+    if(!isTreatPack || p.pouchCredited) return;
+    if(typeof state.pouch !== "number" || !isFinite(state.pouch)) state.pouch = 10;
+    state.pouch += POUCH_TREATS_PER_TREAT_PACK;
+    p.pouchCredited = true;
+    p.pouchTreats = POUCH_TREATS_PER_TREAT_PACK;
+    changed = true;
+  });
+  if(changed) save();
+  return changed;
+}
 // Every visitor gets a unique user/device ID, made once per device/browser
 // and kept in that visitor's own browser (localStorage, state.visitorId).
 // Format BIS-USER-XXXXXX, same unambiguous alphabet as purchase IDs
@@ -267,6 +292,9 @@ function prunePurchases(){
     if(!p.visitorId){ p.visitorId = state.visitorId; changed = true; }
     return new Date(p.expiresAt).getTime() > now;
   });
+  // Treat-pack purchases in this browser put their treats in the visitor's
+  // pouch (idempotent — a credited record is never credited twice).
+  creditPouchForTreatPacks();
   if(state.purchases.length !== before || changed) save();
   return state.purchases;
 }
@@ -345,7 +373,7 @@ function renderPurchaseList(){
   state.purchases.forEach(function(p){
     if(!p.visitorId) p.visitorId = state.visitorId;
     var li = document.createElement("li");
-    li.textContent = p.id + " — " + p.item + (p.productId ? " (" + p.productId + (p.imageRef ? ", " + p.imageRef : "") + ")" : "") + " — linked to your Biscuit ID " + (p.visitorId || state.visitorId) + " — created " + p.createdAt + ", expires " + purchaseExpiresAt(p) + " ";
+    li.textContent = p.id + " — " + p.item + (p.productId ? " (" + p.productId + (p.imageRef ? ", " + p.imageRef : "") + ")" : "") + " — linked to your Biscuit ID " + (p.visitorId || state.visitorId) + " — created " + p.createdAt + ", expires " + purchaseExpiresAt(p) + (p.pouchCredited ? " — " + (p.pouchTreats || POUCH_TREATS_PER_TREAT_PACK) + " treats in your pouch, ready to use." : (p.kind === "treat-pack" ? " — 100 treats go into your pouch, to use when you want." : ""));
     var regBtn = document.createElement("button");
     regBtn.textContent = "\uD83D\uDCCB Register this ID";
     regBtn.className = "secondary";
@@ -372,11 +400,11 @@ function exportPurchases(format){
   // a static site cannot write to GitHub from a visitor's browser.
   prunePurchases();
   var rows = state.purchases.map(function(p){
-    return {id: p.id, visitorId: p.visitorId || state.visitorId, item: p.item, kind: p.kind, productId: p.productId || null, imageRef: p.imageRef || null, createdAt: p.createdAt, expiresAt: purchaseExpiresAt(p)};
+    return {id: p.id, visitorId: p.visitorId || state.visitorId, item: p.item, kind: p.kind, productId: p.productId || null, imageRef: p.imageRef || null, createdAt: p.createdAt, expiresAt: purchaseExpiresAt(p), pouchCredited: !!p.pouchCredited, pouchTreats: p.pouchTreats || 0};
   });
   if(format === "csv"){
     var esc = function(v){ return '"' + String(v === null || v === undefined ? "" : v).replace(/"/g, '""') + '"'; };
-    var csv = "id,visitorId,item,kind,productId,imageRef,createdAt,expiresAt\n" + rows.map(function(r){ return [r.id, r.visitorId, r.item, r.kind, r.productId, r.imageRef, r.createdAt, r.expiresAt].map(esc).join(","); }).join("\n");
+    var csv = "id,visitorId,item,kind,productId,imageRef,createdAt,expiresAt,pouchCredited,pouchTreats\n" + rows.map(function(r){ return [r.id, r.visitorId, r.item, r.kind, r.productId, r.imageRef, r.createdAt, r.expiresAt, r.pouchCredited, r.pouchTreats].map(esc).join(","); }).join("\n");
     downloadFile("biscuit-purchase-ids.csv", csv, "text/csv");
   } else {
     downloadFile("biscuit-purchase-ids.json", JSON.stringify({note: "Private — your purchase IDs from this browser only, kept 7 days. Do not share publicly.", visitorId: state.visitorId, exportedAt: new Date().toISOString(), purchases: rows}, null, 2), "application/json");
@@ -413,7 +441,7 @@ function showPurchaseId(purchase, scroll){
   if(!box || !el) return;
   el.textContent = purchase.id;
   var ref = purchase.productId ? " (" + purchase.productId + (purchase.imageRef ? ", " + purchase.imageRef : "") + ")" : "";
-  if(forEl) forEl.textContent = "For: " + purchase.item + ref + " — linked to your Biscuit ID " + (purchase.visitorId || state.visitorId) + " — started " + purchase.createdAt + ". Stored in this browser only for 7 days, until " + purchaseExpiresAt(purchase) + ".";
+  if(forEl) forEl.textContent = "For: " + purchase.item + ref + " — linked to your Biscuit ID " + (purchase.visitorId || state.visitorId) + " — started " + purchase.createdAt + ". Stored in this browser only for 7 days, until " + purchaseExpiresAt(purchase) + "." + (purchase.pouchCredited ? " " + (purchase.pouchTreats || POUCH_TREATS_PER_TREAT_PACK) + " treats from this purchase are in your pouch, ready to use." : (purchase.kind === "treat-pack" ? " 100 treats from this purchase go into your pouch, to use when you want." : ""));
   var vidSpans = box.querySelectorAll(".purchaseVisitorId");
   for(var i=0;i<vidSpans.length;i++){ vidSpans[i].textContent = purchase.visitorId || state.visitorId; }
   showRegistration(purchase);
@@ -430,7 +458,9 @@ function startPurchase(item, kind, product){
     productId: (product && product.productId) || item,
     imageRef: (product && product.imageRef) || null,
     createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + PURCHASE_TTL_MS).toISOString()
+    expiresAt: new Date(now.getTime() + PURCHASE_TTL_MS).toISOString(),
+    pouchCredited: false,
+    pouchTreats: kind === "treat-pack" ? POUCH_TREATS_PER_TREAT_PACK : 0
   };
   if(!state.purchases) state.purchases = [];
   state.purchases.push(purchase);
@@ -530,7 +560,7 @@ function render(){
   treatShop.innerHTML = "";
   const pack = document.createElement("div");
   pack.className = "item";
-  pack.innerHTML = "<h3>Treat Pack for Biscuit</h3><p>A pack of 5 treats, just for him.</p><p class='small'>To give Biscuit a treat pack, tap below to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID. No dollar price is set here — choose your donation amount on GoFundMe.</p>";
+  pack.innerHTML = "<h3>Treat Pack for Biscuit</h3><p>A pack of 100 treats for your pouch — spend them when you want, one at a time.</p><p class='small'>To give Biscuit a treat pack, tap below to get your unique purchase ID, donate on GoFundMe for Wildlife Victoria with that exact ID in your donation message, then message @biscuit.wanders on Instagram with that ID. The 100 treats go into your pouch, not straight to Biscuit — use them with Give a treat or Feed, when you want. No dollar price is set here — choose your donation amount on GoFundMe.</p>";
   const pb = document.createElement("button");
   pb.textContent = "💚 Donate on GoFundMe — treat pack for Biscuit";
   pb.onclick = function(){
@@ -561,7 +591,7 @@ document.getElementById("feedBtn").onclick = function(){
   state.pouch--; state.meals++; state.jar++; state.treatsGiven++; save(); render();
   document.getElementById("message").textContent = "Fed! Biscuit licks his lips. One meal — that is your 1 feed for today — and another treat into his wander fund.";
 };
-document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate, keepPurchases = prunePurchases(), keepVisitorId = state.visitorId; state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:keepPat, feedDate:keepFeed, purchases:keepPurchases, visitorId: keepVisitorId}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies, and your unexpired purchase IDs (from the last 7 days) are kept so they can still be matched. Your Biscuit ID stays the same on this device."; } };
+document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate, keepPurchases = prunePurchases(), keepVisitorId = state.visitorId; const keepPouch = keepPurchases.some(function(p){ return p.pouchCredited; }) ? state.pouch : 10; state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:keepPouch, collection:[], packs:0, charity:0, patDate:keepPat, feedDate:keepFeed, purchases:keepPurchases, visitorId: keepVisitorId}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies, and your unexpired purchase IDs (from the last 7 days) are kept so they can still be matched. Your Biscuit ID stays the same on this device." + (keepPouch > 10 ? " Your treat pouch is kept — treats from a treat pack stay yours to use." : ""); } };
 // Copy protection: discourage casual copying of Biscuit's images.
 // Right-click / save-as and dragging are blocked on shop previews and the hero
 // image. This cannot stop screenshots — the copyright notice is the rule.
