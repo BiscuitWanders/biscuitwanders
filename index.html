@@ -90,6 +90,11 @@ a{color:var(--bright)}
       <p class="small" id="fundNote">Every treat you give, and every drawing you buy, goes into this fund.</p>
     </div>
     <div class="meter">
+      <div><strong>🐾 Charity fund — donated automatically</strong></div>
+      <div class="big" id="charity">0 treats donated</div>
+      <div class="small" id="charityNote">100% of every purchase (drawings and treats) is automatically donated to Wildlife Victoria and to animal charities worldwide — no manual approval needed, it happens as part of buying. This is an automatic in-site allocation in treats, not a real bank transfer: there is no real-money payment provider or donation link here yet.</div>
+    </div>
+    <div class="meter">
       <div><strong>What Biscuit might wander to next</strong></div>
       <p id="nextWander" style="font-size:1.1rem;margin:6px 0"><strong>Steam trains</strong> — he heard a whistle in the distance.</p>
       <p class="small">Biscuit chooses his own wanders — you can't send him on one. But treats shape what catches his eye: as his jar and energy grow, his next wander gets braver — from trains and kingfishers, toward fireflies, cats and their kingdoms, and railway music. Treats given so far: <span id="treatsGiven">0</span>.</p>
@@ -101,7 +106,7 @@ a{color:var(--bright)}
     <h2>Shop — buy here</h2>
     <div class="note" style="background:#e8f5e9;border-color:#16a34a">
       <strong>🐾 100% of purchases are donated to Wildlife Victoria and to animal charities worldwide.</strong>
-      Every drawing and treat pack you buy here — 100% of purchases (drawings and treats) are donated to Wildlife Victoria and to animal charities worldwide. There is no donation link here yet.
+      Every drawing and treat pack you buy here — 100% of purchases (drawings and treats) are donated to Wildlife Victoria and to animal charities worldwide. The donation happens automatically as part of buying — 100% is earmarked for the charity fund straight away, with no manual approval step. This is an automatic in-site allocation in treats, not a real bank transfer. There is no donation link here yet.
     </div>
     <p>Everything here is paid for in treats, in your own browser. No real money, and no checkout link.</p>
     <p><strong>Self-print printouts:</strong> every drawing you buy is a printout for you to print yourself at home — you get the full printable item in this browser, and no physical print is shipped. Previews are watermarked and low-detail only. The full printout is only shown after you buy it.</p>
@@ -134,6 +139,7 @@ a{color:var(--bright)}
       <li><strong>Give a treat:</strong> 1 treat from your pouch → 1 treat into his wander fund, +energy. Your pouch is limited, so this cannot be farmed either.</li>
       <li><strong>Drawings:</strong> pay the treat price from your pouch → it goes to his fund, and the drawing is yours in your collection as a self-print printout to print at home. Drawings fund his adventures. Personal use only — © BiscuitWanders, no copying or resale.</li>
       <li><strong>Treat packs:</strong> claim a pack and 5 treats go straight into his fund.</li>
+      <li><strong>Charity — automatic:</strong> 100% of every purchase (drawings and treats) is automatically donated to Wildlife Victoria and to animal charities worldwide, as part of buying. No manual approval step, and no real bank transfer yet — this is an automatic in-site allocation in treats, not a payment provider or donation link.</li>
       <li><strong>No trips:</strong> there is no way to send Biscuit anywhere. He chooses his own wanders.</li>
     </ul>
     <p class="small">Daily limits are counted per visitor, per calendar day in your own local time, and are saved in your browser. Starting again does not reset today's pat or feed.</p>
@@ -171,8 +177,8 @@ const PRINTS = {
 const GOAL = 80;
 let state = load();
 function load(){
-  try{ const s = JSON.parse(localStorage.getItem("biscuit-v1")||"null"); if(s){ if(s.patDate===undefined) s.patDate=null; if(s.feedDate===undefined) s.feedDate=null; return s; } }catch(e){}
-  return {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, patDate:null, feedDate:null};
+  try{ const s = JSON.parse(localStorage.getItem("biscuit-v1")||"null"); if(s){ if(s.patDate===undefined) s.patDate=null; if(s.feedDate===undefined) s.feedDate=null; if(s.charity===undefined){ let c=0; (s.collection||[]).forEach(function(n){ const d=DRAWINGS.find(function(x){return x.name===n;}); if(d) c+=d.price; }); c+=(s.packs||0)*5; s.charity=c; } return s; } }catch(e){}
+  return {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:null, feedDate:null};
 }
 function save(){ localStorage.setItem("biscuit-v1", JSON.stringify(state)); }
 function todayStr(){ const d = new Date(); const m = String(d.getMonth()+1).padStart(2,"0"); const day = String(d.getDate()).padStart(2,"0"); return d.getFullYear()+"-"+m+"-"+day; }
@@ -199,6 +205,7 @@ function render(){
   document.getElementById("pouch").textContent = state.pouch + " treats";
   document.getElementById("jar").textContent = state.jar + " / " + GOAL + " treats";
   document.getElementById("jarBar").style.width = Math.min(100, state.jar/GOAL*100) + "%";
+  document.getElementById("charity").textContent = state.charity + " treats donated";
   document.getElementById("energy").textContent = energy() + "%";
   document.getElementById("energyBar").style.width = energy() + "%";
   document.getElementById("mood").textContent = mood();
@@ -219,14 +226,14 @@ function render(){
     const owned = state.collection.includes(d.name);
     const div = document.createElement("div");
     div.className = "item";
-    div.innerHTML = "<div class='" + (owned ? "fullprint" : "preview") + "'>" + PRINTS[d.id] + (owned ? "" : "<div class='watermark'>PREVIEW ONLY<br>© BiscuitWanders</div>") + "</div><h3>"+d.name+"</h3><p>"+d.desc+"</p><p class='price'>"+d.price+" treats</p><p class='small'>"+(owned ? "Claimed — in your collection. Your full self-print printout is below: print it at home, personal use only." : "Preview only — watermarked. Buy it to get the full self-print printout. Buying this funds Biscuit's adventures: the "+d.price+" treats go to his wander fund.")+"</p>";
+    div.innerHTML = "<div class='" + (owned ? "fullprint" : "preview") + "'>" + PRINTS[d.id] + (owned ? "" : "<div class='watermark'>PREVIEW ONLY<br>© BiscuitWanders</div>") + "</div><h3>"+d.name+"</h3><p>"+d.desc+"</p><p class='price'>"+d.price+" treats</p><p class='small'>"+(owned ? "Claimed — in your collection. Your full self-print printout is below: print it at home, personal use only." : "Preview only — watermarked. Buy it to get the full self-print printout. Buying this funds Biscuit's adventures: the "+d.price+" treats go to his wander fund and are automatically donated (100%) to Wildlife Victoria and animal charities worldwide.")+"</p>";
     const b = document.createElement("button");
     b.textContent = owned ? "Claimed ✓" : "Buy with "+d.price+" treats";
     b.disabled = owned || state.pouch < d.price;
     b.onclick = function(){
-      state.pouch -= d.price; state.jar += d.price; state.treatsGiven += d.price; state.collection.push(d.name);
+      state.pouch -= d.price; state.jar += d.price; state.charity += d.price; state.treatsGiven += d.price; state.collection.push(d.name);
       save(); render();
-      document.getElementById("message").textContent = "You bought “"+d.name+"” for "+d.price+" treats — those treats just funded Biscuit's adventures. His wander fund is now "+state.jar+" / "+GOAL+".";
+      document.getElementById("message").textContent = "You bought “"+d.name+"” for "+d.price+" treats — "+d.price+" treats (100%) were automatically donated to Wildlife Victoria and animal charities worldwide, with no approval needed. His wander fund is now "+state.jar+" / "+GOAL+" and the charity fund is now "+state.charity+" treats donated. This is an automatic in-site allocation in treats, not a real bank transfer.";
     };
     div.appendChild(b);
     if(owned){
@@ -256,13 +263,13 @@ function render(){
   treatShop.innerHTML = "";
   const pack = document.createElement("div");
   pack.className = "item";
-  pack.innerHTML = "<h3>Treat Pack for Biscuit</h3><p>A pack of 5 treats, just for him.</p><p class='price'>5 treats → his wander fund</p><p class='small'>Claim a pack and 5 treats go straight into his fund — no money, just a kind claim here. Real treats via Instagram DM.</p>";
+  pack.innerHTML = "<h3>Treat Pack for Biscuit</h3><p>A pack of 5 treats, just for him.</p><p class='price'>5 treats → his wander fund</p><p class='small'>Claim a pack and 5 treats go straight into his fund — and 100% is automatically donated to Wildlife Victoria and animal charities worldwide, with no approval needed. No money, just a kind claim here. Real treats via Instagram DM.</p>";
   const pb = document.createElement("button");
   pb.textContent = "Claim a treat pack (+5 to his fund)";
   pb.onclick = function(){
-    state.jar += 5; state.treatsGiven += 5; state.packs += 1;
+    state.jar += 5; state.charity += 5; state.treatsGiven += 5; state.packs += 1;
     save(); render();
-    document.getElementById("message").textContent = "Treat pack claimed! +5 treats to Biscuit's wander fund — now "+state.jar+" / "+GOAL+". His energy lifted, and his next wander just got a little braver.";
+    document.getElementById("message").textContent = "Treat pack claimed! +5 treats to Biscuit's wander fund — now "+state.jar+" / "+GOAL+", and +5 treats (100%) automatically donated to Wildlife Victoria and animal charities worldwide, with no approval needed. His energy lifted, and his next wander just got a little braver.";
   };
   pack.appendChild(pb); treatShop.appendChild(pack);
 }
@@ -283,7 +290,7 @@ document.getElementById("feedBtn").onclick = function(){
   state.pouch--; state.meals++; state.jar++; state.treatsGiven++; save(); render();
   document.getElementById("message").textContent = "Fed! Biscuit licks his lips. One meal — that is your 1 feed for today — and another treat into his wander fund.";
 };
-document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate; state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, patDate:keepPat, feedDate:keepFeed}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies."; } };
+document.getElementById("resetBtn").onclick = function(){ if(confirm("Start Biscuit again in this browser?")){ const keepPat = state.patDate, keepFeed = state.feedDate; state = {pats:0, meals:0, treatsGiven:0, jar:0, pouch:10, collection:[], packs:0, charity:0, patDate:keepPat, feedDate:keepFeed}; save(); render(); document.getElementById("message").textContent = "Started again — but today's pat and feed stay used, so the daily limit still applies."; } };
 // Copy protection: discourage casual copying of Biscuit's images.
 // Right-click / save-as and dragging are blocked on shop previews and the hero
 // image. This cannot stop screenshots — the copyright notice is the rule.
