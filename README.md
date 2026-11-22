@@ -6,7 +6,7 @@ This is his GitHub Pages site: https://biscuitwanders.github.io/biscuitwanders/
 
 Visitors can pat him, give him treats, and feed him. Treats change his mood and energy, and shape what he might wander to next. Pat/feed are 1 per user per day. Drawings and treat packs are bought by donating on GoFundMe (see below) — there is no treat payment and no dollar price set on this page.
 
-A treat pack puts **100 treats in the buyer's own pouch** on this site (in their browser only, keyed to the treat-pack purchase record, credited once — a reload never credits it twice), so the buyer can spend them with Give a treat / Feed when they want — one at a time, or in bulk (quick amounts 5, 10, 25, or a custom amount, always capped by the pouch). Nothing is auto-spent, and nothing is added to Biscuit's live total until the buyer spends a treat. "Start again" never loses treats: it keeps the pouch exactly as it is, the treats already given to Biscuit, the collection and the purchase IDs (a 2026-11-22 bug fix — it used to rebuild the state with jar/treats given at 0 and the pouch at 10 unless a credited treat-pack record happened to be present).
+A treat pack puts **100 treats in the buyer's own pouch** on this site (in their browser only, keyed to the treat-pack purchase record, credited once — a reload never credits it twice), so the buyer can spend them with Give a treat / Feed when they want — one at a time, or in bulk (quick amounts 5, 10, 25, or a custom amount, always capped by the pouch). Nothing is auto-spent, and nothing is added to Biscuit's live total until the buyer spends a treat. There is no "Start again" / reset button on the site (removed 2026-11-22 after it wiped treats on a tap) — the pouch, treats already given, collection and purchase IDs are never wiped.
 
 There is no way to send Biscuit on a trip — he chooses his own wanders.
 
@@ -18,7 +18,7 @@ No real money is taken on this page. For a real drawing, message @biscuit.wander
 
 ## Purchase IDs — private, 7 days, never published
 
-Each visitor gets a unique **Biscuit ID** (`BIS-USER-XXXXXX`, same unambiguous alphabet as purchase IDs) — made once per device/browser, stored in that visitor's own browser only (localStorage, `biscuit-v1` `visitorId`), shown only to that visitor on the page ("Your Biscuit ID", with a copy button). A different browser/device gets a different Biscuit ID. "Start again" keeps the same Biscuit ID on that device.
+Each visitor gets a unique **Biscuit ID** (`BIS-USER-XXXXXX`, same unambiguous alphabet as purchase IDs) — made once per device/browser, stored in that visitor's own browser only (localStorage, `biscuit-v1` `visitorId`), shown only to that visitor on the page ("Your Biscuit ID", with a copy button). A different browser/device gets a different Biscuit ID. There is no reset button on the site, so the Biscuit ID, pouch and treats are never wiped by a reset.
 
 Each purchase gets a unique ID (BIS-XXXXXX) linked to the specific drawing or treat pack (product id and image/print reference) **and to that visitor's Biscuit ID**. The ID is stored **in that visitor's own browser only** (localStorage) for **7 days**, then pruned automatically. It is copied to the visitor's clipboard (with permission) before they are redirected to GoFundMe; if copying is blocked, they copy it manually and tap Continue instead. Purchase records made before Biscuit IDs existed are linked to the current device's Biscuit ID when shown or exported — no past user ID is invented.
 

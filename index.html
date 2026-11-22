@@ -96,8 +96,6 @@ a{color:var(--bright)}
       <p class="small">Bulk treats come from your pouch — you cannot give more than your pouch holds. Daily pat/feed limits (1 per user per day) still apply to Pat and Feed, not to bulk treating.</p>
     </div>
     <button id="feedBtn">🍽️ Feed Biscuit (1 treat, once a day)</button>
-    <button class="secondary" id="resetBtn">Start again</button>
-    <p class="small">Start again never loses treats: your pouch, the treats you have already given Biscuit, your collection and your purchase IDs are all kept. It only re-saves and re-renders — expired purchase IDs (over 7 days) are dropped as usual, and a treat pack that was never credited yet is credited to your pouch.</p>
     <div class="meters">
       <div class="meter"><div>Pats</div><div class="big" id="pats">0</div></div>
       <div class="meter"><div>Meals</div><div class="big" id="meals">0</div></div>
@@ -208,7 +206,7 @@ a{color:var(--bright)}
       <li><strong>Charity:</strong> 100% of donations on Biscuit's GoFundMe go to Wildlife Victoria. Shop purchases are donations made on GoFundMe for Wildlife Victoria — there is no GoFundMe checkout or API on this site, and this site cannot verify a GoFundMe donation. The charity fund meter on this page only counts earlier in-site treat purchases.</li>
       <li><strong>No trips:</strong> there is no way to send Biscuit anywhere. He chooses his own wanders.</li>
     </ul>
-    <p class="small">Daily limits are counted per visitor, per calendar day in your own local time, and are saved in your browser. Starting again does not reset today's pat or feed — and it never resets your pouch, the treats you have already given Biscuit, your collection or your purchase IDs.</p>
+    <p class="small">Daily limits are counted per visitor, per calendar day in your own local time, and are saved in your browser. There is no reset button on this page — your pouch, the treats you have already given Biscuit, your collection and your purchase IDs are never wiped.</p>
   </section>
 </main>
 
@@ -643,31 +641,6 @@ document.getElementById("feedBtn").onclick = function(){
   state.feedDate = todayStr();
   state.pouch--; state.meals++; state.jar++; state.treatsGiven++; save(); render();
   document.getElementById("message").textContent = "Fed! Biscuit licks his lips. One meal — that is your 1 feed for today — and another treat into his wander fund.";
-};
-document.getElementById("resetBtn").onclick = function(){
-  // Start again NEVER loses treats. Earlier versions of this button rebuilt
-  // the state from scratch (jar:0, treatsGiven:0, pouch:10 unless a credited
-  // treat-pack record happened to be present), so treats Biscuit had already
-  // received — and pouch treats — vanished on a tap. That was a bug.
-  // Now: Start again keeps everything — pouch exactly as it is, treats
-  // already given (jar / treatsGiven), pats, meals, collection, packs,
-  // charity, purchase IDs, Biscuit ID and today's pat/feed dates. The only
-  // thing that can change is the normal load-time housekeeping in
-  // prunePurchases(): expired (>7 day) purchase IDs are dropped, and a
-  // treat-pack purchase that was never credited yet is credited to the pouch
-  // (+100, idempotent — never twice). Mood/energy are derived from those
-  // kept counts, so they do not change either. In short, Start again resets
-  // nothing of value — it just re-saves and re-renders — and the confirm and
-  // the message below say so plainly.
-  if(!confirm("Start Biscuit again in this browser? Nothing will be lost: your treat pouch, the treats you have already given Biscuit, your collection and your purchase IDs are all kept.")) return;
-  var pouchBeforePrune = (typeof state.pouch === "number" && isFinite(state.pouch)) ? state.pouch : 10;
-  var creditedNow = false;
-  var keepPurchases = prunePurchases(); // credits any uncredited treat pack, drops expired IDs
-  if(state.pouch > pouchBeforePrune) creditedNow = true;
-  var kept = {pats: state.pats, meals: state.meals, treatsGiven: state.treatsGiven, jar: state.jar, pouch: state.pouch, collection: state.collection, packs: state.packs, charity: state.charity, patDate: state.patDate, feedDate: state.feedDate, purchases: keepPurchases, visitorId: state.visitorId};
-  state = kept;
-  save(); render();
-  document.getElementById("message").textContent = "Started again — nothing was lost. Your treat pouch (" + state.pouch + " treats), the treats you have already given Biscuit (" + state.treatsGiven + "), your collection and your purchase IDs are all kept, and your Biscuit ID stays the same on this device. Today's pat and feed stay used, so the daily limit still applies." + (creditedNow ? " A treat-pack purchase in this browser was credited to your pouch just now (+100 treats)." : "");
 };
 // Copy protection: discourage casual copying of Biscuit's images.
 // Right-click / save-as and dragging are blocked on shop previews and the hero

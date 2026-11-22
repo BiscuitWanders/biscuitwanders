@@ -50,7 +50,7 @@ No purchase ID or user ID is named in the site code for this — the credit
 follows the purchase record. Note the honest limit: this static site
 cannot verify a GoFundMe donation (no API), so the pouch credit follows
 the purchase record made in the browser, same trust model as the rest of
-the site. "Start again" never loses treats: it keeps the pouch exactly as it is and credits any treat-pack purchase that was never credited yet (once, never twice).
+the site. There is no reset button on the site (removed 2026-11-22 after "Start again" wiped treats) — the pouch is never reset, and any treat-pack purchase that was never credited yet is credited on load (once, never twice).
 
 ## Bulk treating
 
@@ -70,7 +70,7 @@ Pat and Feed only, not to bulk treating. Nothing is added to the live total
   - on the site, in the visitor's own browser (localStorage, key `biscuit-v1`)
     on load and whenever a purchase is started;
   - in any private central list, by the job that maintains it (see below).
-- "Start again" on the site keeps only unexpired (under 7 days) IDs, and never loses treats: pouch, treats already given, collection and Biscuit ID are all kept.
+- There is no reset button on the site, so purchase IDs are never wiped by a reset; only unexpired (under 7 days) IDs are kept.
 
 ## Where IDs actually live
 
