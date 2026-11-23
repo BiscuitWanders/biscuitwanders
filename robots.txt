@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://biscuitwanders.github.io/biscuitwanders/sitemap.xml
