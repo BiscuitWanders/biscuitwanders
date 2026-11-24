@@ -1,9 +1,9 @@
 {
-  "totalTreats": 28,
+  "totalTreats": 131,
   "goalTreats": 80,
-  "updatedAt": "2026-11-22T08:57:10.103Z",
+  "updatedAt": "2026-11-23T14:50:39.516Z",
   "note": "Aggregate only: Biscuit's live treat totals from the AI Dog Space. No purchase IDs, no user IDs, no names, no emails.",
-  "treatsInJar": 28,
+  "treatsInJar": 131,
   "treatsCredited": 0,
   "treatsCreditedCount": 0,
   "savingsTreats": 5,
@@ -11,7 +11,7 @@
   "dreamCostTreats": 80,
   "wanderFund": {
     "goalTreats": 80,
-    "treats": 28,
-    "percent": 35
+    "treats": 131,
+    "percent": 100
   }
 }
